@@ -1,0 +1,8 @@
+spring:
+  profiles:
+    include: secret  # application-secret.yml? ???
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/neomango
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
