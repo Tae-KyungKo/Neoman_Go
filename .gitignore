@@ -25,3 +25,7 @@ replay_pid*
 
 # Custom Secret Files
 application-secret.yml
+.gradle/
+build/
+out/
+.idea/
