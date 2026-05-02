@@ -47,6 +47,19 @@
 - 팀 가입 승인 시 팀 정원 초과를 막아야 한다.
 - 탈퇴 회원은 Soft Delete 처리한다.
 
+## Package Naming Convention
+- `controller`: HTTP 요청/응답 처리 계층
+- `service`: 비즈니스 유스케이스와 트랜잭션 경계 담당
+- `entity`: JPA Entity와 도메인 상태 변경 메서드 위치
+- `repository`: DB 접근 계층
+- `dto`: 요청/응답 DTO
+
+주의:
+- `entity` 패키지명을 사용하더라도 Entity를 단순 데이터 컨테이너로 취급하지 않는다.
+- 핵심 상태 변경은 setter가 아니라 도메인 메서드로 표현한다.
+- Controller에는 비즈니스 로직을 두지 않는다.
+- Service는 트랜잭션 경계와 유스케이스 조합을 담당한다.
+
 ## Engineering Principles
 - Entity를 API 응답으로 직접 반환하지 않는다.
 - 모든 쓰기 작업은 트랜잭션 경계를 가진다.
