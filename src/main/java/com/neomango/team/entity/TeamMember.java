@@ -53,5 +53,9 @@ public class TeamMember {
 	public static TeamMember createOwner(Team team, User user) {
 		return new TeamMember(team, user, TeamRole.OWNER);
 	}
+
+	public static TeamMember createMember(Team team, User user) {
+		return new TeamMember(team, user, TeamRole.MEMBER);
+	}
 }
 

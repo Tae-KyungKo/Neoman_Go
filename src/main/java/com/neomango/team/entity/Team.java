@@ -3,8 +3,6 @@ package com.neomango.team.entity;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.neomango.global.exception.BusinessException;
-import com.neomango.global.exception.ErrorCode;
 import com.neomango.user.entity.User;
 
 import jakarta.persistence.CascadeType;
@@ -34,31 +32,21 @@ public class Team {
 	@Column(nullable = false, length = 50)
 	private String name;
 
-	@Column(nullable = false)
-	private int capacity;
-
 	@OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<TeamMember> members = new ArrayList<>();
 
-	private Team(String name, int capacity) {
+	private Team(String name) {
 		this.name = name;
-		this.capacity = capacity;
 	}
 
-	public static Team create(String name, int capacity, User owner) {
-		Team team = new Team(name, capacity);
+	public static Team create(String name, User owner) {
+		Team team = new Team(name);
 		team.addOwner(owner);
 		return team;
 	}
 
 	private void addOwner(User owner) {
 		this.members.add(TeamMember.createOwner(this, owner));
-	}
-
-	public void validateJoinable() {
-		if (members.size() >= capacity) {
-			throw new BusinessException(ErrorCode.TEAM_CAPACITY_EXCEEDED);
-		}
 	}
 }
 
