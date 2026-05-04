@@ -19,7 +19,12 @@ public enum ErrorCode {
 	DUPLICATE_EMAIL(HttpStatus.CONFLICT, "U002", "이미 사용 중인 이메일입니다."),
 
 	TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, "T001", "팀을 찾을 수 없습니다."),
-	TEAM_CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "T002", "팀 정원을 초과할 수 없습니다.");
+	TEAM_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "T002", "팀장 권한이 필요합니다."),
+	ALREADY_TEAM_MEMBER(HttpStatus.CONFLICT, "T003", "이미 팀에 가입한 사용자입니다."),
+	DUPLICATE_TEAM_MEMBER(HttpStatus.CONFLICT, "T004", "이미 존재하는 팀 멤버입니다."),
+	TEAM_APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "TA001", "팀 가입 신청을 찾을 수 없습니다."),
+	DUPLICATE_PENDING_TEAM_APPLICATION(HttpStatus.CONFLICT, "TA002", "이미 처리 대기 중인 가입 신청이 있습니다."),
+	INVALID_TEAM_APPLICATION_STATUS(HttpStatus.CONFLICT, "TA003", "처리할 수 없는 가입 신청 상태입니다.");
 
 	private final HttpStatus httpStatus;
 	private final String code;

@@ -20,7 +20,7 @@
 
 ## 🏗 Architecture (Planned)
 * **Stateless Architecture**: 서버 확장성을 고려한 JWT 및 Redis 활용
-* **Concurrency Control**: 팀 가입 신청 시 선착순 처리를 위한 분산 락 적용
+* **Concurrency Control**: 중복 가입 신청과 중복 승인 방지를 위한 DB 제약조건 및 트랜잭션 전략 적용
 * **Observability**: Prometheus & Grafana를 활용한 API 성능(500ms 이내) 모니터링
 
 ---

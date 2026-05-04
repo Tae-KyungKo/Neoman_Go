@@ -22,7 +22,7 @@ public class TeamService {
 
 	public TeamResponse create(Long ownerId, TeamCreateRequest request) {
 		User owner = userService.getById(ownerId);
-		Team team = Team.create(request.name(), request.capacity(), owner);
+		Team team = Team.create(request.name(), owner);
 		return TeamResponse.from(teamRepository.save(team));
 	}
 }
