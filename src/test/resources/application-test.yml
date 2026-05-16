@@ -13,3 +13,8 @@ spring:
       hibernate:
         format_sql: false
     open-in-view: false
+
+jwt:
+  secret: neomango-test-jwt-secret-key-over-32-bytes
+  access-token-validity-in-seconds: 1800
+  refresh-token-validity-in-seconds: 1209600
