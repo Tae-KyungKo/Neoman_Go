@@ -101,6 +101,12 @@ class JwtAuthenticationFilterTest {
 			.andExpect(status().isUnauthorized());
 	}
 
+	@Test
+	void logoutApiRejectsRequestWithoutToken() throws Exception {
+		mockMvc.perform(post("/api/auth/logout"))
+			.andExpect(status().isUnauthorized());
+	}
+
 	@RestController
 	static class TestAuthController {
 
