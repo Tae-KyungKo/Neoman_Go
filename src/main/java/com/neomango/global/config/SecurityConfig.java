@@ -31,7 +31,7 @@ public class SecurityConfig {
 					response.sendError(HttpStatus.UNAUTHORIZED.value()))
 			)
 			.authorizeHttpRequests(auth -> auth
-				.requestMatchers("/api/auth/login", "/api/auth/signup").permitAll()
+				.requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/reissue").permitAll()
 				.requestMatchers("/error").permitAll()
 				.anyRequest().authenticated()
 			)

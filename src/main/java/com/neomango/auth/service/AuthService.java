@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.neomango.auth.dto.LoginRequest;
+import com.neomango.auth.dto.ReissueRequest;
 import com.neomango.auth.dto.SignupRequest;
 import com.neomango.auth.dto.TokenResponse;
 import com.neomango.auth.jwt.JwtProperties;
@@ -66,6 +67,46 @@ public class AuthService {
 			"Bearer",
 			jwtProperties.accessTokenValidityInSeconds()
 		);
+	}
+
+	public TokenResponse reissue(ReissueRequest request) {
+		String refreshToken = request.refreshToken();
+
+		if (!jwtTokenProvider.validateToken(refreshToken) || !jwtTokenProvider.isRefreshToken(refreshToken)) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+		}
+
+		Long userId = jwtTokenProvider.getUserId(refreshToken);
+		if (!refreshTokenService.matches(userId, refreshToken)) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+		}
+
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+
+		if (user.getStatus() != UserStatus.ACTIVE) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+		}
+
+		String newAccessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getRole());
+		String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId());
+
+		refreshTokenService.save(user.getId(), newRefreshToken);
+
+		return new TokenResponse(
+			newAccessToken,
+			newRefreshToken,
+			"Bearer",
+			jwtProperties.accessTokenValidityInSeconds()
+		);
+	}
+
+	public void logout(Long userId) {
+		if (userId == null) {
+			throw new IllegalArgumentException("userId must not be null.");
+		}
+
+		refreshTokenService.delete(userId);
 	}
 }
 
