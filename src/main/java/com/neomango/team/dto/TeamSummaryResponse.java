@@ -3,31 +3,30 @@ package com.neomango.team.dto;
 import java.time.LocalDateTime;
 
 import com.neomango.team.entity.Team;
+import com.neomango.team.entity.TeamMember;
 import com.neomango.team.entity.TeamStatus;
 import com.neomango.user.entity.User;
 
-public record TeamResponse(
+public record TeamSummaryResponse(
 	Long id,
 	String name,
-	String description,
 	String category,
-	Integer maxMemberCount,
 	Integer currentMemberCount,
+	Integer maxMemberCount,
 	TeamStatus status,
 	Long ownerId,
 	String ownerNickname,
 	LocalDateTime createdAt
 ) {
 
-	public static TeamResponse from(Team team) {
-		User owner = team.getCreatedBy();
-		return new TeamResponse(
+	public static TeamSummaryResponse from(Team team, TeamMember ownerMember) {
+		User owner = ownerMember.getUser();
+		return new TeamSummaryResponse(
 			team.getId(),
 			team.getName(),
-			team.getDescription(),
 			team.getCategory(),
-			team.getMaxMemberCount(),
 			team.getCurrentMemberCount(),
+			team.getMaxMemberCount(),
 			team.getStatus(),
 			owner.getId(),
 			owner.getNickname(),

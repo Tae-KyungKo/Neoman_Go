@@ -1,5 +1,7 @@
 package com.neomango.team.entity;
 
+import java.time.LocalDateTime;
+
 import com.neomango.user.entity.User;
 
 import jakarta.persistence.Column;
@@ -14,7 +16,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,20 +43,28 @@ public class TeamMember {
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
-	private TeamRole role;
+	private TeamMemberRole role;
 
-	private TeamMember(Team team, User user, TeamRole role) {
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 20)
+	private TeamMemberStatus status;
+
+	@Column(nullable = false)
+	private LocalDateTime joinedAt;
+
+	private TeamMember(Team team, User user, TeamMemberRole role) {
 		this.team = team;
 		this.user = user;
 		this.role = role;
+		this.status = TeamMemberStatus.ACTIVE;
+		this.joinedAt = LocalDateTime.now();
 	}
 
 	public static TeamMember createOwner(Team team, User user) {
-		return new TeamMember(team, user, TeamRole.OWNER);
+		return new TeamMember(team, user, TeamMemberRole.OWNER);
 	}
 
 	public static TeamMember createMember(Team team, User user) {
-		return new TeamMember(team, user, TeamRole.MEMBER);
+		return new TeamMember(team, user, TeamMemberRole.MEMBER);
 	}
 }
-
