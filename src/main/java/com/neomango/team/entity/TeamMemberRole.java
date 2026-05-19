@@ -1,7 +1,6 @@
 package com.neomango.team.entity;
 
-public enum TeamRole {
+public enum TeamMemberRole {
 	OWNER,
 	MEMBER
 }
-

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum ErrorCode {
+	TEAM_OWNER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "T005", "Team owner not found."),
 	INVALID_REQUEST(HttpStatus.BAD_REQUEST, "G001", "잘못된 요청입니다."),
 	UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "G002", "인증이 필요합니다."),
 	FORBIDDEN(HttpStatus.FORBIDDEN, "G003", "권한이 없습니다."),
