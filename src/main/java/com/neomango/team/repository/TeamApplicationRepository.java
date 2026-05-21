@@ -1,0 +1,58 @@
+package com.neomango.team.repository;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.neomango.team.entity.TeamApplication;
+import com.neomango.team.entity.TeamApplicationStatus;
+
+public interface TeamApplicationRepository extends JpaRepository<TeamApplication, Long> {
+
+	boolean existsByTeamIdAndApplicantIdAndStatus(
+		Long teamId,
+		Long applicantId,
+		TeamApplicationStatus status
+	);
+
+	List<TeamApplication> findByApplicantIdOrderByCreatedAtDesc(Long applicantId);
+
+	List<TeamApplication> findByTeamIdAndStatusOrderByCreatedAtAsc(
+		Long teamId,
+		TeamApplicationStatus status
+	);
+
+	@Query("""
+		select application
+		from TeamApplication application
+		join fetch application.team
+		where application.id = :applicationId
+		""")
+	Optional<TeamApplication> findByIdWithTeam(@Param("applicationId") Long applicationId);
+
+	@Query("""
+		select application
+		from TeamApplication application
+		join fetch application.team
+		where application.applicant.id = :applicantId
+		order by application.createdAt desc
+		""")
+	List<TeamApplication> findByApplicantIdWithTeamOrderByCreatedAtDesc(@Param("applicantId") Long applicantId);
+
+	@Query("""
+		select application
+		from TeamApplication application
+		join fetch application.team
+		join fetch application.applicant
+		where application.team.id = :teamId
+			and application.status = :status
+		order by application.createdAt asc
+		""")
+	List<TeamApplication> findByTeamIdAndStatusWithApplicantOrderByCreatedAtAsc(
+		@Param("teamId") Long teamId,
+		@Param("status") TeamApplicationStatus status
+	);
+}

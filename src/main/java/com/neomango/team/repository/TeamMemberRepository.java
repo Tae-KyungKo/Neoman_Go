@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.neomango.team.entity.TeamMember;
 import com.neomango.team.entity.TeamMemberRole;
+import com.neomango.team.entity.TeamMemberStatus;
 
 public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
@@ -33,5 +34,22 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 	List<TeamMember> findByTeamIdWithUser(@Param("teamId") Long teamId);
 
 	Optional<TeamMember> findByTeamIdAndRole(Long teamId, TeamMemberRole role);
+
+	boolean existsByTeamIdAndUserIdAndStatus(Long teamId, Long userId, TeamMemberStatus status);
+
+	@Query("""
+		select count(teamMember) > 0
+		from TeamMember teamMember
+		join teamMember.team team
+		where teamMember.user.id = :userId
+			and teamMember.status = com.neomango.team.entity.TeamMemberStatus.ACTIVE
+			and team.category = :category
+			and team.status <> com.neomango.team.entity.TeamStatus.DELETED
+			and team.deletedAt is null
+		""")
+	boolean existsActiveMemberByUserIdAndTeamCategory(
+		@Param("userId") Long userId,
+		@Param("category") String category
+	);
 }
 
