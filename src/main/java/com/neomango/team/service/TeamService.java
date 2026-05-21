@@ -22,6 +22,7 @@ import com.neomango.team.entity.Team;
 import com.neomango.team.entity.TeamMember;
 import com.neomango.team.entity.TeamMemberRole;
 import com.neomango.team.entity.TeamMemberStatus;
+import com.neomango.team.entity.TeamStatus;
 import com.neomango.team.repository.TeamMemberRepository;
 import com.neomango.team.repository.TeamRepository;
 import com.neomango.user.entity.User;
@@ -77,7 +78,7 @@ public class TeamService {
 
 	@Transactional(readOnly = true)
 	public TeamDetailResponse getTeamDetail(Long teamId) {
-		Team team = teamRepository.findByIdAndDeletedAtIsNull(teamId)
+		Team team = teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(teamId, TeamStatus.DELETED)
 			.orElseThrow(() -> new BusinessException(ErrorCode.TEAM_NOT_FOUND));
 		List<TeamMember> members = teamMemberRepository.findByTeamIdWithUser(teamId);
 		TeamMember ownerMember = members.stream()
@@ -93,7 +94,7 @@ public class TeamService {
 			throw new BusinessException(ErrorCode.UNAUTHORIZED);
 		}
 
-		Team team = teamRepository.findByIdAndDeletedAtIsNull(teamId)
+		Team team = teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(teamId, TeamStatus.DELETED)
 			.orElseThrow(() -> new BusinessException(ErrorCode.TEAM_NOT_FOUND));
 		TeamMember ownerMember = teamMemberRepository.findByTeamIdAndRole(teamId, TeamMemberRole.OWNER)
 			.orElseThrow(() -> new BusinessException(ErrorCode.TEAM_OWNER_NOT_FOUND));
@@ -107,7 +108,7 @@ public class TeamService {
 			throw new BusinessException(ErrorCode.UNAUTHORIZED);
 		}
 
-		Team team = teamRepository.findByIdAndDeletedAtIsNull(teamId)
+		Team team = teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(teamId, TeamStatus.DELETED)
 			.orElseThrow(() -> new BusinessException(ErrorCode.TEAM_NOT_FOUND));
 		TeamMember ownerMember = teamMemberRepository.findByTeamIdAndRole(teamId, TeamMemberRole.OWNER)
 			.orElseThrow(() -> new BusinessException(ErrorCode.TEAM_OWNER_NOT_FOUND));

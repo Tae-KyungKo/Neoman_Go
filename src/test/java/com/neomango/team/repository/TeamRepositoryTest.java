@@ -12,7 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.neomango.team.entity.TeamApplication;
+import com.neomango.team.entity.TeamApplicationStatus;
 import com.neomango.team.entity.Team;
 import com.neomango.team.entity.TeamMember;
 import com.neomango.team.entity.TeamMemberRole;
@@ -34,6 +37,9 @@ class TeamRepositoryTest {
 
 	@Autowired
 	private TeamMemberRepository teamMemberRepository;
+
+	@Autowired
+	private TeamApplicationRepository teamApplicationRepository;
 
 	@Autowired
 	private UserRepository userRepository;
@@ -156,6 +162,76 @@ class TeamRepositoryTest {
 
 		assertThat(oneToMany).isNotNull();
 		assertThat(Arrays.asList(oneToMany.cascade())).contains(CascadeType.ALL);
+	}
+
+	@Test
+	@DisplayName("find active team by id excludes deleted status and deletedAt")
+	void findByIdAndStatusNotAndDeletedAtIsNullExcludesDeletedTeam() {
+		User owner = saveUser("owner8@test.com", "owner8");
+		Team activeTeam = teamRepository.saveAndFlush(Team.create("Active Team", null, "GAME", 4, owner));
+		Team deletedStatusTeam = Team.create("Deleted Status Team", null, "GAME", 4, owner);
+		deletedStatusTeam.softDelete();
+		teamRepository.saveAndFlush(deletedStatusTeam);
+		Team deletedAtTeam = Team.create("Deleted At Team", null, "GAME", 4, owner);
+		ReflectionTestUtils.setField(deletedAtTeam, "deletedAt", java.time.LocalDateTime.now());
+		teamRepository.saveAndFlush(deletedAtTeam);
+
+		assertThat(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(activeTeam.getId(), TeamStatus.DELETED))
+			.isPresent();
+		assertThat(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(deletedStatusTeam.getId(), TeamStatus.DELETED))
+			.isEmpty();
+		assertThat(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(deletedAtTeam.getId(), TeamStatus.DELETED))
+			.isEmpty();
+	}
+
+	@Test
+	@DisplayName("same category active membership includes recruiting and closed teams but excludes deleted teams")
+	void existsActiveMemberByUserIdAndTeamCategoryFollowsTeamDeletePolicy() {
+		User owner = saveUser("owner9@test.com", "owner9");
+		User member = saveUser("member2@test.com", "member2");
+		Team recruitingTeam = teamRepository.saveAndFlush(Team.create("Recruiting Team", null, "GAME", 4, owner));
+		Team closedTeam = Team.create("Closed Team", null, "SPORTS", 4, owner);
+		closedTeam.close();
+		teamRepository.saveAndFlush(closedTeam);
+		Team deletedTeam = Team.create("Deleted Team", null, "MUSIC", 4, owner);
+		deletedTeam.softDelete();
+		teamRepository.saveAndFlush(deletedTeam);
+		teamMemberRepository.saveAndFlush(TeamMember.createMember(recruitingTeam, member));
+		teamMemberRepository.saveAndFlush(TeamMember.createMember(closedTeam, member));
+		teamMemberRepository.saveAndFlush(TeamMember.createMember(deletedTeam, member));
+
+		assertThat(teamMemberRepository.existsActiveMemberByUserIdAndTeamCategory(member.getId(), "GAME")).isTrue();
+		assertThat(teamMemberRepository.existsActiveMemberByUserIdAndTeamCategory(member.getId(), "SPORTS")).isTrue();
+		assertThat(teamMemberRepository.existsActiveMemberByUserIdAndTeamCategory(member.getId(), "MUSIC")).isFalse();
+	}
+
+	@Test
+	@DisplayName("team application fetch join methods initialize required association")
+	void teamApplicationFetchJoinMethodsInitializeRequiredAssociation() {
+		User owner = saveUser("owner10@test.com", "owner10");
+		User applicant = saveUser("applicant1@test.com", "applicant1");
+		Team team = teamRepository.saveAndFlush(Team.create("Application Team", null, "GAME", 4, owner));
+		TeamApplication application = teamApplicationRepository.saveAndFlush(
+			TeamApplication.create(team, applicant, "message")
+		);
+		entityManager.clear();
+
+		TeamApplication applicationWithTeam = teamApplicationRepository.findByIdWithTeam(application.getId())
+			.orElseThrow();
+		assertThat(Hibernate.isInitialized(applicationWithTeam.getTeam())).isTrue();
+
+		entityManager.clear();
+		TeamApplication applicantApplication = teamApplicationRepository
+			.findByApplicantIdWithTeamOrderByCreatedAtDesc(applicant.getId())
+			.get(0);
+		assertThat(Hibernate.isInitialized(applicantApplication.getTeam())).isTrue();
+
+		entityManager.clear();
+		TeamApplication pendingApplication = teamApplicationRepository
+			.findByTeamIdAndStatusWithApplicantOrderByCreatedAtAsc(team.getId(), TeamApplicationStatus.PENDING)
+			.get(0);
+		assertThat(Hibernate.isInitialized(pendingApplication.getTeam())).isTrue();
+		assertThat(Hibernate.isInitialized(pendingApplication.getApplicant())).isTrue();
 	}
 
 	private User saveUser(String email, String nickname) {

@@ -213,7 +213,8 @@ class TeamServiceTest {
 		User owner = activeUser();
 		Team team = savedTeam(12L, owner, "GAME");
 		TeamMember ownerMember = team.getMembers().get(0);
-		when(teamRepository.findByIdAndDeletedAtIsNull(12L)).thenReturn(Optional.of(team));
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(12L, TeamStatus.DELETED))
+			.thenReturn(Optional.of(team));
 		when(teamMemberRepository.findByTeamIdWithUser(12L)).thenReturn(List.of(ownerMember));
 
 		TeamDetailResponse response = teamService.getTeamDetail(12L);
@@ -227,7 +228,8 @@ class TeamServiceTest {
 
 	@Test
 	void getTeamDetailThrowsExceptionWhenTeamDoesNotExist() {
-		when(teamRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(999L, TeamStatus.DELETED))
+			.thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> teamService.getTeamDetail(999L))
 			.isInstanceOf(BusinessException.class)
@@ -239,7 +241,8 @@ class TeamServiceTest {
 	void getTeamDetailThrowsExceptionWhenOwnerIsMissing() {
 		User owner = activeUser();
 		Team team = savedTeam(15L, owner, "GAME");
-		when(teamRepository.findByIdAndDeletedAtIsNull(15L)).thenReturn(Optional.of(team));
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(15L, TeamStatus.DELETED))
+			.thenReturn(Optional.of(team));
 		when(teamMemberRepository.findByTeamIdWithUser(15L)).thenReturn(List.of());
 
 		assertThatThrownBy(() -> teamService.getTeamDetail(15L))
@@ -253,7 +256,8 @@ class TeamServiceTest {
 		User owner = activeUser();
 		Team team = savedTeam(16L, owner, "GAME");
 		TeamMember ownerMember = team.getMembers().get(0);
-		when(teamRepository.findByIdAndDeletedAtIsNull(16L)).thenReturn(Optional.of(team));
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(16L, TeamStatus.DELETED))
+			.thenReturn(Optional.of(team));
 		when(teamMemberRepository.findByTeamIdAndRole(16L, TeamMemberRole.OWNER)).thenReturn(Optional.of(ownerMember));
 
 		teamService.closeTeam(USER_ID, 16L);
@@ -267,7 +271,8 @@ class TeamServiceTest {
 		User notOwner = user(2L, "member@test.com", "member");
 		Team team = savedTeam(17L, owner, "GAME");
 		TeamMember ownerMember = team.getMembers().get(0);
-		when(teamRepository.findByIdAndDeletedAtIsNull(17L)).thenReturn(Optional.of(team));
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(17L, TeamStatus.DELETED))
+			.thenReturn(Optional.of(team));
 		when(teamMemberRepository.findByTeamIdAndRole(17L, TeamMemberRole.OWNER)).thenReturn(Optional.of(ownerMember));
 
 		assertThatThrownBy(() -> teamService.closeTeam(notOwner.getId(), 17L))
@@ -282,7 +287,8 @@ class TeamServiceTest {
 		Team team = savedTeam(18L, owner, "GAME");
 		team.close();
 		TeamMember ownerMember = team.getMembers().get(0);
-		when(teamRepository.findByIdAndDeletedAtIsNull(18L)).thenReturn(Optional.of(team));
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(18L, TeamStatus.DELETED))
+			.thenReturn(Optional.of(team));
 		when(teamMemberRepository.findByTeamIdAndRole(18L, TeamMemberRole.OWNER)).thenReturn(Optional.of(ownerMember));
 
 		teamService.closeTeam(USER_ID, 18L);
@@ -292,7 +298,8 @@ class TeamServiceTest {
 
 	@Test
 	void closeTeamThrowsExceptionWhenTeamDoesNotExist() {
-		when(teamRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(999L, TeamStatus.DELETED))
+			.thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> teamService.closeTeam(USER_ID, 999L))
 			.isInstanceOf(BusinessException.class)
@@ -302,7 +309,8 @@ class TeamServiceTest {
 
 	@Test
 	void closeTeamThrowsExceptionWhenTeamIsDeleted() {
-		when(teamRepository.findByIdAndDeletedAtIsNull(19L)).thenReturn(Optional.empty());
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(19L, TeamStatus.DELETED))
+			.thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> teamService.closeTeam(USER_ID, 19L))
 			.isInstanceOf(BusinessException.class)
@@ -316,7 +324,8 @@ class TeamServiceTest {
 		Team team = savedTeam(20L, owner, "GAME");
 		TeamMember ownerMember = team.getMembers().get(0);
 		ReflectionTestUtils.setField(ownerMember, "status", TeamMemberStatus.LEFT);
-		when(teamRepository.findByIdAndDeletedAtIsNull(20L)).thenReturn(Optional.of(team));
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(20L, TeamStatus.DELETED))
+			.thenReturn(Optional.of(team));
 		when(teamMemberRepository.findByTeamIdAndRole(20L, TeamMemberRole.OWNER)).thenReturn(Optional.of(ownerMember));
 
 		assertThatThrownBy(() -> teamService.closeTeam(USER_ID, 20L))
@@ -330,7 +339,8 @@ class TeamServiceTest {
 		User owner = activeUser();
 		Team team = savedTeam(21L, owner, "GAME");
 		TeamMember ownerMember = team.getMembers().get(0);
-		when(teamRepository.findByIdAndDeletedAtIsNull(21L)).thenReturn(Optional.of(team));
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(21L, TeamStatus.DELETED))
+			.thenReturn(Optional.of(team));
 		when(teamMemberRepository.findByTeamIdAndRole(21L, TeamMemberRole.OWNER)).thenReturn(Optional.of(ownerMember));
 
 		teamService.deleteTeam(USER_ID, 21L);
@@ -344,7 +354,8 @@ class TeamServiceTest {
 		User notOwner = user(2L, "member@test.com", "member");
 		Team team = savedTeam(22L, owner, "GAME");
 		TeamMember ownerMember = team.getMembers().get(0);
-		when(teamRepository.findByIdAndDeletedAtIsNull(22L)).thenReturn(Optional.of(team));
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(22L, TeamStatus.DELETED))
+			.thenReturn(Optional.of(team));
 		when(teamMemberRepository.findByTeamIdAndRole(22L, TeamMemberRole.OWNER)).thenReturn(Optional.of(ownerMember));
 
 		assertThatThrownBy(() -> teamService.deleteTeam(notOwner.getId(), 22L))
@@ -355,7 +366,8 @@ class TeamServiceTest {
 
 	@Test
 	void deleteTeamThrowsExceptionWhenTeamDoesNotExist() {
-		when(teamRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(999L, TeamStatus.DELETED))
+			.thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> teamService.deleteTeam(USER_ID, 999L))
 			.isInstanceOf(BusinessException.class)
@@ -365,7 +377,8 @@ class TeamServiceTest {
 
 	@Test
 	void deleteTeamThrowsExceptionWhenTeamIsDeleted() {
-		when(teamRepository.findByIdAndDeletedAtIsNull(23L)).thenReturn(Optional.empty());
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(23L, TeamStatus.DELETED))
+			.thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> teamService.deleteTeam(USER_ID, 23L))
 			.isInstanceOf(BusinessException.class)
@@ -379,7 +392,8 @@ class TeamServiceTest {
 		Team team = savedTeam(24L, owner, "GAME");
 		TeamMember ownerMember = team.getMembers().get(0);
 		ReflectionTestUtils.setField(ownerMember, "status", TeamMemberStatus.KICKED);
-		when(teamRepository.findByIdAndDeletedAtIsNull(24L)).thenReturn(Optional.of(team));
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(24L, TeamStatus.DELETED))
+			.thenReturn(Optional.of(team));
 		when(teamMemberRepository.findByTeamIdAndRole(24L, TeamMemberRole.OWNER)).thenReturn(Optional.of(ownerMember));
 
 		assertThatThrownBy(() -> teamService.deleteTeam(USER_ID, 24L))

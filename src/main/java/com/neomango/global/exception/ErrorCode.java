@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum ErrorCode {
-	TEAM_OWNER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "T005", "Team owner not found."),
+	TEAM_OWNER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "T005", "팀 소유자를 찾을 수 없습니다."),
 	INVALID_REQUEST(HttpStatus.BAD_REQUEST, "G001", "잘못된 요청입니다."),
 	UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "G002", "인증이 필요합니다."),
 	FORBIDDEN(HttpStatus.FORBIDDEN, "G003", "권한이 없습니다."),
@@ -19,16 +19,20 @@ public enum ErrorCode {
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "사용자를 찾을 수 없습니다."),
 	DUPLICATE_EMAIL(HttpStatus.CONFLICT, "U002", "이미 사용 중인 이메일입니다."),
 
-	TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, "T001", "팀을 찾을 수 없습니다."),
+	TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, "T001", "존재하지 않는 팀입니다."),
 	TEAM_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "T002", "팀장 권한이 필요합니다."),
-	ALREADY_TEAM_MEMBER(HttpStatus.CONFLICT, "T003", "이미 팀에 가입한 사용자입니다."),
+	ALREADY_TEAM_MEMBER(HttpStatus.CONFLICT, "T003", "이미 소속되었습니다."),
 	DUPLICATE_TEAM_MEMBER(HttpStatus.CONFLICT, "T004", "이미 존재하는 팀 멤버입니다."),
-	TEAM_APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "TA001", "팀 가입 신청을 찾을 수 없습니다."),
-	DUPLICATE_PENDING_TEAM_APPLICATION(HttpStatus.CONFLICT, "TA002", "이미 처리 대기 중인 가입 신청이 있습니다."),
-	INVALID_TEAM_APPLICATION_STATUS(HttpStatus.CONFLICT, "TA003", "처리할 수 없는 가입 신청 상태입니다.");
+	TEAM_CLOSED(HttpStatus.CONFLICT, "T006", "마감된 팀입니다."),
+	ALREADY_CATEGORY_TEAM_MEMBER(HttpStatus.CONFLICT, "T007", "이미 해당 카테고리의 팀에 소속되었습니다."),
+	TEAM_APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "TA001", "존재하지 않는 가입 신청입니다."),
+	DUPLICATE_PENDING_TEAM_APPLICATION(HttpStatus.CONFLICT, "TA002", "이미 가입 신청한 팀입니다."),
+	INVALID_TEAM_APPLICATION_STATUS(HttpStatus.CONFLICT, "TA003", "처리할 수 없는 가입 신청 상태입니다."),
+	TEAM_APPLICATION_CANCEL_FORBIDDEN(HttpStatus.FORBIDDEN, "TA004", "본인의 가입 신청만 취소할 수 있습니다."),
+	ONLY_PENDING_TEAM_APPLICATION_CANCELABLE(HttpStatus.CONFLICT, "TA005", "대기 중인 가입 신청만 취소할 수 있습니다."),
+	TEAM_APPLICATION_LIST_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "TA006", "팀 주장만 가입 신청 목록을 조회할 수 있습니다.");
 
 	private final HttpStatus httpStatus;
 	private final String code;
 	private final String message;
 }
-

@@ -1,5 +1,7 @@
 package com.neomango.team.controller;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -22,10 +24,14 @@ import com.neomango.global.exception.BusinessException;
 import com.neomango.global.exception.ErrorCode;
 import com.neomango.global.response.ApiResponse;
 import com.neomango.global.security.AuthenticatedUser;
+import com.neomango.team.dto.TeamApplicationCreateRequest;
+import com.neomango.team.dto.TeamApplicationOwnerResponse;
+import com.neomango.team.dto.TeamApplicationResponse;
 import com.neomango.team.dto.TeamCreateRequest;
 import com.neomango.team.dto.TeamDetailResponse;
 import com.neomango.team.dto.TeamResponse;
 import com.neomango.team.dto.TeamSummaryResponse;
+import com.neomango.team.service.TeamApplicationService;
 import com.neomango.team.service.TeamService;
 
 import jakarta.validation.Valid;
@@ -37,6 +43,7 @@ import lombok.RequiredArgsConstructor;
 public class TeamController {
 
 	private final TeamService teamService;
+	private final TeamApplicationService teamApplicationService;
 
 	@GetMapping
 	public ApiResponse<Page<TeamSummaryResponse>> getTeams(
@@ -66,6 +73,32 @@ public class TeamController {
 		}
 
 		return ApiResponse.success(teamService.createTeam(currentUser.userId(), request));
+	}
+
+	@PostMapping("/{teamId}/applications")
+	@ResponseStatus(HttpStatus.CREATED)
+	public ApiResponse<TeamApplicationResponse> createTeamApplication(
+		@AuthenticationPrincipal AuthenticatedUser currentUser,
+		@PathVariable Long teamId,
+		@Valid @RequestBody TeamApplicationCreateRequest request
+	) {
+		if (currentUser == null) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+		}
+
+		return ApiResponse.success(teamApplicationService.createApplication(teamId, currentUser.userId(), request));
+	}
+
+	@GetMapping("/{teamId}/applications")
+	public ApiResponse<List<TeamApplicationOwnerResponse>> getTeamApplications(
+		@AuthenticationPrincipal AuthenticatedUser currentUser,
+		@PathVariable Long teamId
+	) {
+		if (currentUser == null) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+		}
+
+		return ApiResponse.success(teamApplicationService.getPendingApplicationsForOwner(teamId, currentUser.userId()));
 	}
 
 	@PatchMapping("/{teamId}/close")

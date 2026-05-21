@@ -101,6 +101,7 @@ public class Team {
 	}
 
 	public void softDelete() {
+		this.status = TeamStatus.DELETED;
 		this.deletedAt = LocalDateTime.now();
 	}
 
