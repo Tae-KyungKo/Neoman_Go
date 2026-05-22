@@ -3,11 +3,13 @@ package com.neomango.team.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -25,11 +27,15 @@ import com.neomango.team.dto.TeamApplicationResponse;
 import com.neomango.team.entity.Team;
 import com.neomango.team.entity.TeamApplication;
 import com.neomango.team.entity.TeamApplicationStatus;
+import com.neomango.team.entity.TeamMember;
+import com.neomango.team.entity.TeamMemberRole;
 import com.neomango.team.entity.TeamMemberStatus;
 import com.neomango.team.entity.TeamStatus;
+import com.neomango.team.exception.ApplicationAlreadyProcessedException;
 import com.neomango.team.repository.TeamApplicationRepository;
 import com.neomango.team.repository.TeamMemberRepository;
 import com.neomango.team.repository.TeamRepository;
+import com.neomango.team.repository.UserCategoryMembershipRepository;
 import com.neomango.user.entity.User;
 import com.neomango.user.repository.UserRepository;
 
@@ -48,6 +54,9 @@ class TeamApplicationServiceTest {
 
 	@Mock
 	private TeamMemberRepository teamMemberRepository;
+
+	@Mock
+	private UserCategoryMembershipRepository userCategoryMembershipRepository;
 
 	@Mock
 	private UserRepository userRepository;
@@ -330,6 +339,105 @@ class TeamApplicationServiceTest {
 		assertThat(response.status()).isEqualTo(TeamApplicationStatus.CANCELED);
 	}
 
+	@Test
+	void approveApplicationCreatesTeamMemberAndApprovesPendingApplication() {
+		User owner = user(1L, "owner@test.com", "owner");
+		User applicant = user(APPLICANT_ID, "applicant@test.com", "applicant");
+		Team team = team(TEAM_ID, owner, "FUTSAL");
+		TeamApplication application = application(100L, team, applicant);
+		when(teamApplicationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(application));
+		when(teamMemberRepository.findByTeamIdAndRole(TEAM_ID, TeamMemberRole.OWNER))
+			.thenReturn(Optional.of(team.getMembers().get(0)));
+		when(teamMemberRepository.existsByTeamIdAndUserId(TEAM_ID, APPLICANT_ID)).thenReturn(false);
+		when(teamMemberRepository.existsByTeamIdAndUserIdAndStatus(TEAM_ID, APPLICANT_ID, TeamMemberStatus.ACTIVE))
+			.thenReturn(false);
+		when(teamMemberRepository.existsActiveMemberByUserIdAndTeamCategory(APPLICANT_ID, "FUTSAL"))
+			.thenReturn(false);
+		when(teamApplicationRepository.findOtherPendingApplicationsInSameCategory(100L, APPLICANT_ID, "FUTSAL"))
+			.thenReturn(List.of());
+
+		TeamApplicationResponse response = teamApplicationService.approveApplication(100L, owner.getId());
+
+		assertThat(response.status()).isEqualTo(TeamApplicationStatus.APPROVED);
+		assertThat(application.getStatus()).isEqualTo(TeamApplicationStatus.APPROVED);
+		ArgumentCaptor<TeamMember> captor = ArgumentCaptor.forClass(TeamMember.class);
+		verify(teamMemberRepository).save(captor.capture());
+		assertThat(captor.getValue().getTeam()).isSameAs(team);
+		assertThat(captor.getValue().getUser()).isSameAs(applicant);
+		assertThat(captor.getValue().getRole()).isEqualTo(TeamMemberRole.MEMBER);
+	}
+
+	@Test
+	void rejectApplicationRejectsPendingApplicationWithoutCreatingTeamMember() {
+		User owner = user(1L, "owner@test.com", "owner");
+		User applicant = user(APPLICANT_ID, "applicant@test.com", "applicant");
+		Team team = team(TEAM_ID, owner, "FUTSAL");
+		TeamApplication application = application(100L, team, applicant);
+		when(teamApplicationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(application));
+		when(teamMemberRepository.findByTeamIdAndRole(TEAM_ID, TeamMemberRole.OWNER))
+			.thenReturn(Optional.of(team.getMembers().get(0)));
+
+		TeamApplicationResponse response = teamApplicationService.rejectApplication(100L, owner.getId());
+
+		assertThat(response.status()).isEqualTo(TeamApplicationStatus.REJECTED);
+		assertThat(application.getStatus()).isEqualTo(TeamApplicationStatus.REJECTED);
+		verify(teamMemberRepository, never()).save(any(TeamMember.class));
+	}
+
+	@Test
+	void approveAndRejectApplicationFailWhenRequesterIsNotOwner() {
+		User owner = user(1L, "owner@test.com", "owner");
+		User applicant = user(APPLICANT_ID, "applicant@test.com", "applicant");
+		Team team = team(TEAM_ID, owner, "FUTSAL");
+		when(teamApplicationRepository.findByIdForUpdate(100L))
+			.thenReturn(Optional.of(application(100L, team, applicant)))
+			.thenReturn(Optional.of(application(101L, team, applicant)));
+		when(teamMemberRepository.findByTeamIdAndRole(TEAM_ID, TeamMemberRole.OWNER))
+			.thenReturn(Optional.of(team.getMembers().get(0)));
+
+		assertBusinessException(
+			() -> teamApplicationService.approveApplication(100L, 999L),
+			ErrorCode.TEAM_OWNER_REQUIRED
+		);
+		assertBusinessException(
+			() -> teamApplicationService.rejectApplication(100L, 999L),
+			ErrorCode.TEAM_OWNER_REQUIRED
+		);
+
+		verify(teamMemberRepository, never()).save(any(TeamMember.class));
+	}
+
+	@Test
+	void approveAndRejectApplicationFailWhenApplicationIsAlreadyProcessed() {
+		assertProcessFailsWhenApplicationStatusIs(TeamApplicationStatus.APPROVED);
+		assertProcessFailsWhenApplicationStatusIs(TeamApplicationStatus.REJECTED);
+		assertProcessFailsWhenApplicationStatusIs(TeamApplicationStatus.CANCELED);
+	}
+
+	@Test
+	void approveApplicationCancelsOtherPendingApplicationsInSameCategory() {
+		User owner = user(1L, "owner@test.com", "owner");
+		User applicant = user(APPLICANT_ID, "applicant@test.com", "applicant");
+		Team team = team(TEAM_ID, owner, "FUTSAL");
+		TeamApplication application = application(100L, team, applicant);
+		TeamApplication otherApplication = application(101L, team(11L, user(3L, "other-owner@test.com", "other"), "FUTSAL"), applicant);
+		when(teamApplicationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(application));
+		when(teamMemberRepository.findByTeamIdAndRole(TEAM_ID, TeamMemberRole.OWNER))
+			.thenReturn(Optional.of(team.getMembers().get(0)));
+		when(teamMemberRepository.existsByTeamIdAndUserId(TEAM_ID, APPLICANT_ID)).thenReturn(false);
+		when(teamMemberRepository.existsByTeamIdAndUserIdAndStatus(TEAM_ID, APPLICANT_ID, TeamMemberStatus.ACTIVE))
+			.thenReturn(false);
+		when(teamMemberRepository.existsActiveMemberByUserIdAndTeamCategory(APPLICANT_ID, "FUTSAL"))
+			.thenReturn(false);
+		when(teamApplicationRepository.findOtherPendingApplicationsInSameCategory(100L, APPLICANT_ID, "FUTSAL"))
+			.thenReturn(List.of(otherApplication));
+
+		teamApplicationService.approveApplication(100L, owner.getId());
+
+		assertThat(application.getStatus()).isEqualTo(TeamApplicationStatus.APPROVED);
+		assertThat(otherApplication.getStatus()).isEqualTo(TeamApplicationStatus.CANCELED);
+	}
+
 	private void createApplicationSucceedsWhenNoPendingApplicationExists() {
 		User applicant = user(APPLICANT_ID, "applicant@test.com", "applicant");
 		Team team = team(TEAM_ID, user(1L, "owner@test.com", "owner"), "FUTSAL");
@@ -383,6 +491,25 @@ class TeamApplicationServiceTest {
 			() -> teamApplicationService.cancelApplication(100L, APPLICANT_ID),
 			ErrorCode.ONLY_PENDING_TEAM_APPLICATION_CANCELABLE
 		);
+	}
+
+	private void assertProcessFailsWhenApplicationStatusIs(TeamApplicationStatus status) {
+		User applicant = user(APPLICANT_ID, "applicant@test.com", "applicant");
+		Team team = team(TEAM_ID, user(1L, "owner@test.com", "owner"), "FUTSAL");
+		TeamApplication application = application(100L, team, applicant);
+		switch (status) {
+			case APPROVED -> application.approve();
+			case REJECTED -> application.reject();
+			case CANCELED -> application.cancel();
+			default -> throw new IllegalArgumentException("Unsupported status: " + status);
+		}
+		when(teamApplicationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(application));
+
+		assertThatThrownBy(() -> teamApplicationService.approveApplication(100L, 1L))
+			.isInstanceOf(ApplicationAlreadyProcessedException.class);
+		when(teamApplicationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(application));
+		assertThatThrownBy(() -> teamApplicationService.rejectApplication(100L, 1L))
+			.isInstanceOf(ApplicationAlreadyProcessedException.class);
 	}
 
 	private TeamApplicationCreateRequest request() {

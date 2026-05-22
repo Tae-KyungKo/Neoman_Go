@@ -236,7 +236,24 @@
 - OWNER는 권한 위임 없이 팀 탈퇴 불가
 - OWNER 변경은 명시적 권한 위임으로 처리
 - 팀에는 최대 허용 멤버 수를 두지 않는다.
+- 팀 승인/거절 구현에서 `currentMemberCount`, `maxMemberCount` 기반 로직은 사용하지 않는다.
 - 팀 가입 신청 중복 방지 필수
+
+## Phase 3 TeamApplication Policy
+
+- Phase 3의 핵심은 TeamApplication 승인/거절 상태 전이의 정합성이다.
+- 팀 가입 신청의 승인/거절은 해당 팀의 OWNER만 수행할 수 있다.
+- `PENDING` 상태의 신청만 승인 또는 거절할 수 있다.
+- 승인 시 `TeamMember`를 생성하고 `TeamApplication` 상태를 `APPROVED`로 변경한다.
+- 거절 시 `TeamApplication` 상태를 `REJECTED`로 변경한다.
+- 승인 시 같은 사용자와 같은 카테고리의 다른 `PENDING` 신청은 자동으로 `CANCELED` 처리한다.
+- 승인/거절 처리는 반드시 하나의 `@Transactional` 경계 안에서 수행한다.
+- 같은 신청의 동시 승인/거절 처리를 막기 위해 승인/거절 대상 `TeamApplication`에는 `PESSIMISTIC_WRITE` 락을 적용한다.
+- 동일 사용자와 동일 팀의 `TeamMember` 중복 생성은 애플리케이션 검증과 DB unique constraint로 방지한다.
+- 동일 사용자와 동일 카테고리의 중복 소속은 `UserCategoryMembership`의 `unique(user_id, category)`로 DB 레벨에서 방어한다.
+- `TeamMember`는 팀 내부 멤버십을 담당하고, `UserCategoryMembership`은 카테고리 단위 소속 제약을 담당한다.
+- 현재 category는 문자열 기반이며, 장기적으로 enum 또는 `Category` 테이블 분리를 검토한다.
+- 정원 정책은 없으므로 승인 로직에서 팀 정원이나 멤버 수 카운터를 검증하지 않는다.
 
 ## User Policy
 
@@ -260,6 +277,10 @@
 중 하나를 상황에 맞게 선택한다.
 
 Trade-off를 설명한다.
+
+Phase 3 승인/거절 구현에서는 우선 `TeamApplication` `PESSIMISTIC_WRITE` 락을 사용한다.
+`TeamMember` 중복 생성은 DB unique constraint를 최종 방어선으로 유지한다.
+같은 카테고리 중복 소속은 `UserCategoryMembership` unique constraint를 최종 방어선으로 유지한다.
 
 ---
 

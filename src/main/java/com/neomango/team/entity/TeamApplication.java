@@ -2,6 +2,7 @@ package com.neomango.team.entity;
 
 import java.time.LocalDateTime;
 
+import com.neomango.team.exception.ApplicationAlreadyProcessedException;
 import com.neomango.user.entity.User;
 
 import jakarta.persistence.Column;
@@ -47,6 +48,9 @@ public class TeamApplication {
 	private String message;
 
 	@Column(nullable = false)
+	private boolean active;
+
+	@Column(nullable = false)
 	private LocalDateTime createdAt;
 
 	@Column(nullable = false)
@@ -59,6 +63,7 @@ public class TeamApplication {
 		this.applicant = applicant;
 		this.status = TeamApplicationStatus.PENDING;
 		this.message = message;
+		this.active = true;
 	}
 
 	public static TeamApplication create(Team team, User applicant, String message) {
@@ -66,16 +71,28 @@ public class TeamApplication {
 	}
 
 	public void cancel() {
+		validatePending();
 		this.status = TeamApplicationStatus.CANCELED;
+		this.active = false;
 		this.canceledAt = LocalDateTime.now();
 	}
 
 	public void approve() {
+		validatePending();
 		this.status = TeamApplicationStatus.APPROVED;
+		this.active = false;
 	}
 
 	public void reject() {
+		validatePending();
 		this.status = TeamApplicationStatus.REJECTED;
+		this.active = false;
+	}
+
+	public void validatePending() {
+		if (this.status != TeamApplicationStatus.PENDING) {
+			throw new ApplicationAlreadyProcessedException();
+		}
 	}
 
 	@PrePersist
