@@ -65,6 +65,7 @@
 - 팀 생성 시 `TeamMember`가 함께 생성되어야 한다.
 - 팀은 카테고리를 가진다. 
 - 각 팀에는 멤버 수에 대한 정원이 없다.
+- 팀 가입 승인 처리에서 `currentMemberCount`, `maxMemberCount` 기반 로직은 사용하지 않는다.
 
 ### 3.2 팀 상태
 - 팀은 최소한 다음 상태를 가진다.
@@ -136,6 +137,7 @@
 - 팀 가입 신청의 승인/거절은 해당 팀의 `OWNER`만 수행할 수 있다.
 - 다른 팀의 `OWNER`는 권한이 없다.
 - 일반 팀원은 승인/거절 권한이 없다.
+- 승인/거절 권한은 `TeamMember`의 `role`과 활성 상태를 기준으로 검증한다.
 
 ### 5.2 승인 처리
 - 승인 시 다음 작업은 하나의 트랜잭션 안에서 처리한다.
@@ -146,19 +148,26 @@
     5. `TeamMember` 생성
     6. 신청 상태를 `APPROVED`로 변경
     7. 같은 카테고리의 다른 `PENDING` 신청을 `CANCELED`로 변경
+- `PENDING` 상태의 신청만 승인할 수 있다.
+- 승인 시 `TeamMember` 생성과 `TeamApplication` 상태 변경은 반드시 하나의 `@Transactional` 경계 안에서 처리한다.
+- 같은 신청은 중복 승인될 수 없다.
+- 같은 사용자와 같은 팀의 `TeamMember` 중복 생성은 애플리케이션 검증으로 먼저 막고, DB unique constraint를 최종 방어선으로 둔다.
+- 같은 사용자와 같은 카테고리의 중복 소속은 `UserCategoryMembership`의 `unique(user_id, category)` 제약을 최종 방어선으로 둔다.
+- `TeamMember`는 팀 내부 멤버십을 표현하고, `UserCategoryMembership`은 사용자-카테고리 단위 소속 제약을 표현한다.
+- 현재 category는 문자열 기반이며, 장기적으로 enum 또는 별도 `Category` 테이블 분리를 검토한다.
 
 ### 5.3 거절 처리
+- `PENDING` 상태의 신청만 거절할 수 있다.
 - 거절 시 신청 상태를 `REJECTED`로 변경한다.
 - `REJECTED` 신청은 이후 재신청할 수 있다.
+- 거절 처리는 반드시 `@Transactional` 경계 안에서 수행한다.
+- 같은 신청은 중복 거절되거나 승인 후 거절될 수 없다.
 
 ### 5.4 동시성 제어
 - 같은 카테고리의 여러 팀에 동시에 승인 요청이 들어와도 한 회원은 하나의 팀에만 소속되어야 한다.
-- 승인 로직은 비관적 락 또는 낙관적 락으로 보호한다.
-- 우선 구현은 비관적 락을 권장한다.
-- 최소한 다음 대상의 동시성 보호가 필요하다.
-    - 승인 대상 `Team`
-    - 승인 대상 `TeamApplication`
-    - 신청자의 같은 카테고리 소속 여부 검증
+- 같은 신청의 동시 승인/거절 처리를 막기 위해 승인/거절 대상 `TeamApplication` 조회에는 `PESSIMISTIC_WRITE` 락을 적용한다.
+- 같은 카테고리 중복 소속은 애플리케이션 검증과 `UserCategoryMembership` DB unique constraint로 방지하고, `TeamMember` 중복 생성은 DB unique constraint를 최종 방어선으로 둔다.
+- 팀에는 멤버 정원이 없으므로 승인 동시성 설계에서 정원 기반 검증은 고려하지 않는다.
 
 ### 5.5 승인 관련 예외 메시지
 - 이미 처리된 신청인 경우: `이미 처리된 신청입니다`

@@ -21,6 +21,7 @@ import com.neomango.team.entity.TeamMember;
 import com.neomango.team.entity.TeamMemberRole;
 import com.neomango.team.entity.TeamMemberStatus;
 import com.neomango.team.entity.TeamStatus;
+import com.neomango.team.entity.UserCategoryMembership;
 import com.neomango.user.entity.User;
 import com.neomango.user.repository.UserRepository;
 
@@ -40,6 +41,9 @@ class TeamRepositoryTest {
 
 	@Autowired
 	private TeamApplicationRepository teamApplicationRepository;
+
+	@Autowired
+	private UserCategoryMembershipRepository userCategoryMembershipRepository;
 
 	@Autowired
 	private UserRepository userRepository;
@@ -119,6 +123,24 @@ class TeamRepositoryTest {
 
 		assertThatThrownBy(() -> {
 			teamMemberRepository.saveAndFlush(TeamMember.createMember(team, owner));
+		}).isInstanceOf(DataIntegrityViolationException.class);
+	}
+
+	@Test
+	@DisplayName("fail to save duplicate UserCategoryMembership for same user and category")
+	void duplicateUserCategoryMembershipFails() {
+		User owner = saveUser("owner-category@test.com", "ownerCategory");
+		User applicant = saveUser("category-applicant@test.com", "categoryApplicant");
+		Team team1 = teamRepository.saveAndFlush(Team.create("Futsal Team 1", null, "FUTSAL", owner));
+		Team team2 = teamRepository.saveAndFlush(Team.create("Futsal Team 2", null, "FUTSAL", owner));
+		userCategoryMembershipRepository.saveAndFlush(
+			UserCategoryMembership.create(applicant, "FUTSAL", team1)
+		);
+
+		assertThatThrownBy(() -> {
+			userCategoryMembershipRepository.saveAndFlush(
+				UserCategoryMembership.create(applicant, "FUTSAL", team2)
+			);
 		}).isInstanceOf(DataIntegrityViolationException.class);
 	}
 
@@ -216,6 +238,12 @@ class TeamRepositoryTest {
 		TeamApplication applicationWithTeam = teamApplicationRepository.findByIdWithTeam(application.getId())
 			.orElseThrow();
 		assertThat(Hibernate.isInitialized(applicationWithTeam.getTeam())).isTrue();
+
+		entityManager.clear();
+		TeamApplication lockedApplication = teamApplicationRepository.findByIdForUpdate(application.getId())
+			.orElseThrow();
+		assertThat(Hibernate.isInitialized(lockedApplication.getTeam())).isTrue();
+		assertThat(Hibernate.isInitialized(lockedApplication.getApplicant())).isTrue();
 
 		entityManager.clear();
 		TeamApplication applicantApplication = teamApplicationRepository
