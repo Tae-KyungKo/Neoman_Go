@@ -12,8 +12,6 @@ public record TeamDetailResponse(
 	String name,
 	String description,
 	String category,
-	Integer currentMemberCount,
-	Integer maxMemberCount,
 	TeamStatus status,
 	TeamMemberResponse owner,
 	List<TeamMemberResponse> members,
@@ -26,8 +24,6 @@ public record TeamDetailResponse(
 			team.getName(),
 			team.getDescription(),
 			team.getCategory(),
-			team.getCurrentMemberCount(),
-			team.getMaxMemberCount(),
 			team.getStatus(),
 			TeamMemberResponse.from(ownerMember),
 			members.stream()

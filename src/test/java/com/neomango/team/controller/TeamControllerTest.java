@@ -74,7 +74,7 @@ class TeamControllerTest {
 	void createTeamReturnsCreatedWhenAuthenticated() throws Exception {
 		User user = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		String accessToken = jwtTokenProvider.createAccessToken(user.getId(), UserRole.USER);
-		TeamCreateRequest request = new TeamCreateRequest("Game Team", "Weekend game team", "GAME", 5);
+		TeamCreateRequest request = new TeamCreateRequest("Game Team", "Weekend game team", "GAME");
 
 		mockMvc.perform(post("/api/teams")
 				.header("Authorization", "Bearer " + accessToken)
@@ -85,8 +85,6 @@ class TeamControllerTest {
 			.andExpect(jsonPath("$.data.name").value("Game Team"))
 			.andExpect(jsonPath("$.data.description").value("Weekend game team"))
 			.andExpect(jsonPath("$.data.category").value("GAME"))
-			.andExpect(jsonPath("$.data.maxMemberCount").value(5))
-			.andExpect(jsonPath("$.data.currentMemberCount").value(1))
 			.andExpect(jsonPath("$.data.status").value("RECRUITING"))
 			.andExpect(jsonPath("$.data.ownerId").value(user.getId()))
 			.andExpect(jsonPath("$.data.ownerNickname").value("owner"));
@@ -94,7 +92,7 @@ class TeamControllerTest {
 
 	@Test
 	void createTeamRejectsRequestWithoutAuthentication() throws Exception {
-		TeamCreateRequest request = new TeamCreateRequest("Game Team", "Weekend game team", "GAME", 5);
+		TeamCreateRequest request = new TeamCreateRequest("Game Team", "Weekend game team", "GAME");
 
 		mockMvc.perform(post("/api/teams")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -106,21 +104,7 @@ class TeamControllerTest {
 	void createTeamReturnsBadRequestWhenNameIsBlank() throws Exception {
 		User user = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		String accessToken = jwtTokenProvider.createAccessToken(user.getId(), UserRole.USER);
-		TeamCreateRequest request = new TeamCreateRequest(" ", "Weekend game team", "GAME", 5);
-
-		mockMvc.perform(post("/api/teams")
-				.header("Authorization", "Bearer " + accessToken)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(request)))
-			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("G001"));
-	}
-
-	@Test
-	void createTeamReturnsBadRequestWhenMaxMemberCountIsOne() throws Exception {
-		User user = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		String accessToken = jwtTokenProvider.createAccessToken(user.getId(), UserRole.USER);
-		TeamCreateRequest request = new TeamCreateRequest("Game Team", "Weekend game team", "GAME", 1);
+		TeamCreateRequest request = new TeamCreateRequest(" ", "Weekend game team", "GAME");
 
 		mockMvc.perform(post("/api/teams")
 				.header("Authorization", "Bearer " + accessToken)
@@ -133,7 +117,7 @@ class TeamControllerTest {
 	@Test
 	void getTeamsReturnsTeamSummariesWithoutAuthentication() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		teamRepository.save(Team.create("Game Team", "Weekend game team", "GAME", 5, owner));
+		teamRepository.save(Team.create("Game Team", "Weekend game team", "GAME", owner));
 
 		mockMvc.perform(get("/api/teams")
 				.param("page", "0")
@@ -142,8 +126,6 @@ class TeamControllerTest {
 			.andExpect(jsonPath("$.success").value(true))
 			.andExpect(jsonPath("$.data.content[0].name").value("Game Team"))
 			.andExpect(jsonPath("$.data.content[0].category").value("GAME"))
-			.andExpect(jsonPath("$.data.content[0].currentMemberCount").value(1))
-			.andExpect(jsonPath("$.data.content[0].maxMemberCount").value(5))
 			.andExpect(jsonPath("$.data.content[0].status").value("RECRUITING"))
 			.andExpect(jsonPath("$.data.content[0].ownerId").value(owner.getId()))
 			.andExpect(jsonPath("$.data.content[0].ownerNickname").value("owner"));
@@ -152,8 +134,8 @@ class TeamControllerTest {
 	@Test
 	void getTeamsFiltersByCategoryWithoutAuthentication() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		teamRepository.save(Team.create("Game Team", null, "GAME", 5, owner));
-		teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", 5, owner));
+		teamRepository.save(Team.create("Game Team", null, "GAME", owner));
+		teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 
 		mockMvc.perform(get("/api/teams")
 				.param("category", "FUTSAL")
@@ -168,8 +150,8 @@ class TeamControllerTest {
 	@Test
 	void getTeamsUsesDefaultSortByCreatedAtDescAndIdDesc() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		Team olderTeam = teamRepository.save(Team.create("Older Team", null, "GAME", 5, owner));
-		Team newerTeam = teamRepository.save(Team.create("Newer Team", null, "GAME", 5, owner));
+		Team olderTeam = teamRepository.save(Team.create("Older Team", null, "GAME", owner));
+		Team newerTeam = teamRepository.save(Team.create("Newer Team", null, "GAME", owner));
 		ReflectionTestUtils.setField(olderTeam, "createdAt", LocalDateTime.of(2026, 1, 1, 0, 0));
 		ReflectionTestUtils.setField(newerTeam, "createdAt", LocalDateTime.of(2026, 1, 2, 0, 0));
 		teamRepository.saveAndFlush(olderTeam);
@@ -186,8 +168,8 @@ class TeamControllerTest {
 	@Test
 	void getTeamsExcludesDeletedTeam() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		teamRepository.save(Team.create("Active Team", null, "GAME", 5, owner));
-		Team deletedTeam = Team.create("Deleted Team", null, "GAME", 5, owner);
+		teamRepository.save(Team.create("Active Team", null, "GAME", owner));
+		Team deletedTeam = Team.create("Deleted Team", null, "GAME", owner);
 		ReflectionTestUtils.setField(deletedTeam, "deletedAt", LocalDateTime.now());
 		teamRepository.saveAndFlush(deletedTeam);
 
@@ -202,7 +184,7 @@ class TeamControllerTest {
 	@Test
 	void getTeamDetailReturnsMembersWithoutAuthentication() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		Team team = teamRepository.save(Team.create("Game Team", "Weekend game team", "GAME", 5, owner));
+		Team team = teamRepository.save(Team.create("Game Team", "Weekend game team", "GAME", owner));
 
 		mockMvc.perform(get("/api/teams/{teamId}", team.getId()))
 			.andExpect(status().isOk())
@@ -211,8 +193,6 @@ class TeamControllerTest {
 			.andExpect(jsonPath("$.data.name").value("Game Team"))
 			.andExpect(jsonPath("$.data.description").value("Weekend game team"))
 			.andExpect(jsonPath("$.data.category").value("GAME"))
-			.andExpect(jsonPath("$.data.currentMemberCount").value(1))
-			.andExpect(jsonPath("$.data.maxMemberCount").value(5))
 			.andExpect(jsonPath("$.data.status").value("RECRUITING"))
 			.andExpect(jsonPath("$.data.owner.userId").value(owner.getId()))
 			.andExpect(jsonPath("$.data.owner.nickname").value("owner"))
@@ -227,7 +207,7 @@ class TeamControllerTest {
 	@Test
 	void closeTeamSucceedsWhenRequesterIsOwner() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", 5, owner));
+		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
 		mockMvc.perform(patch("/api/teams/{teamId}/close", team.getId())
@@ -242,7 +222,7 @@ class TeamControllerTest {
 	@Test
 	void closeTeamRejectsRequestWithoutAuthentication() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", 5, owner));
+		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 
 		mockMvc.perform(patch("/api/teams/{teamId}/close", team.getId()))
 			.andExpect(status().isUnauthorized());
@@ -252,7 +232,7 @@ class TeamControllerTest {
 	void closeTeamRejectsRequesterWhoIsNotOwner() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		User member = userRepository.save(User.create("member@test.com", "encoded-password", "member"));
-		Team team = Team.create("Game Team", null, "GAME", 5, owner);
+		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, member));
 		Team savedTeam = teamRepository.save(team);
 		String accessToken = jwtTokenProvider.createAccessToken(member.getId(), UserRole.USER);
@@ -266,7 +246,7 @@ class TeamControllerTest {
 	@Test
 	void deleteTeamSucceedsWhenRequesterIsOwner() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", 5, owner));
+		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
 		mockMvc.perform(delete("/api/teams/{teamId}", team.getId())
@@ -282,7 +262,7 @@ class TeamControllerTest {
 	@Test
 	void deleteTeamRejectsRequestWithoutAuthentication() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", 5, owner));
+		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 
 		mockMvc.perform(delete("/api/teams/{teamId}", team.getId()))
 			.andExpect(status().isUnauthorized());
@@ -292,7 +272,7 @@ class TeamControllerTest {
 	void deleteTeamRejectsRequesterWhoIsNotOwner() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		User member = userRepository.save(User.create("member@test.com", "encoded-password", "member"));
-		Team team = Team.create("Game Team", null, "GAME", 5, owner);
+		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, member));
 		Team savedTeam = teamRepository.save(team);
 		String accessToken = jwtTokenProvider.createAccessToken(member.getId(), UserRole.USER);
@@ -306,7 +286,7 @@ class TeamControllerTest {
 	@Test
 	void deletedTeamIsExcludedFromListAndDetail() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", 5, owner));
+		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
 		mockMvc.perform(delete("/api/teams/{teamId}", team.getId())
@@ -328,7 +308,7 @@ class TeamControllerTest {
 	void createTeamApplicationReturnsCreatedWhenAuthenticated() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
-		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", 5, owner));
+		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(applicant.getId(), UserRole.USER);
 		TeamApplicationCreateRequest request = new TeamApplicationCreateRequest("가입하고 싶습니다.");
 
@@ -348,7 +328,7 @@ class TeamControllerTest {
 	@Test
 	void createTeamApplicationRejectsRequestWithoutAuthentication() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", 5, owner));
+		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		TeamApplicationCreateRequest request = new TeamApplicationCreateRequest("가입하고 싶습니다.");
 
 		mockMvc.perform(post("/api/teams/{teamId}/applications", team.getId())
@@ -365,7 +345,7 @@ class TeamControllerTest {
 		User applicant3 = userRepository.save(User.create("applicant3@test.com", "encoded-password", "mango3"));
 		User applicant4 = userRepository.save(User.create("applicant4@test.com", "encoded-password", "mango4"));
 		User applicant5 = userRepository.save(User.create("applicant5@test.com", "encoded-password", "mango5"));
-		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", 5, owner));
+		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		saveApplication(team, applicant2, "second", LocalDateTime.of(2026, 5, 21, 13, 0), TeamApplicationStatus.PENDING);
 		saveApplication(team, applicant1, "first", LocalDateTime.of(2026, 5, 21, 12, 0), TeamApplicationStatus.PENDING);
 		saveApplication(team, applicant3, "approved", LocalDateTime.of(2026, 5, 21, 11, 0), TeamApplicationStatus.APPROVED);
@@ -394,7 +374,7 @@ class TeamControllerTest {
 	void getTeamApplicationsRejectsNormalMember() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		User member = userRepository.save(User.create("member@test.com", "encoded-password", "member"));
-		Team team = Team.create("Futsal Team", null, "FUTSAL", 5, owner);
+		Team team = Team.create("Futsal Team", null, "FUTSAL", owner);
 		team.addMember(TeamMember.createMember(team, member));
 		Team savedTeam = teamRepository.save(team);
 		String accessToken = jwtTokenProvider.createAccessToken(member.getId(), UserRole.USER);
@@ -409,7 +389,7 @@ class TeamControllerTest {
 	void getTeamApplicationsRejectsUserWhoDoesNotBelongToTeam() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		User outsider = userRepository.save(User.create("outsider@test.com", "encoded-password", "outsider"));
-		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", 5, owner));
+		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(outsider.getId(), UserRole.USER);
 
 		mockMvc.perform(get("/api/teams/{teamId}/applications", team.getId())
@@ -422,8 +402,8 @@ class TeamControllerTest {
 	void getTeamApplicationsRejectsOtherTeamOwner() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		User otherOwner = userRepository.save(User.create("other-owner@test.com", "encoded-password", "otherOwner"));
-		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", 5, owner));
-		teamRepository.save(Team.create("Other Team", null, "GAME", 5, otherOwner));
+		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
+		teamRepository.save(Team.create("Other Team", null, "GAME", otherOwner));
 		String accessToken = jwtTokenProvider.createAccessToken(otherOwner.getId(), UserRole.USER);
 
 		mockMvc.perform(get("/api/teams/{teamId}/applications", team.getId())
@@ -446,7 +426,7 @@ class TeamControllerTest {
 	@Test
 	void getTeamApplicationsReturnsNotFoundWhenTeamIsDeleted() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		Team team = Team.create("Futsal Team", null, "FUTSAL", 5, owner);
+		Team team = Team.create("Futsal Team", null, "FUTSAL", owner);
 		team.softDelete();
 		Team savedTeam = teamRepository.save(team);
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
@@ -460,7 +440,7 @@ class TeamControllerTest {
 	@Test
 	void getTeamApplicationsReturnsNotFoundWhenTeamDeletedAtExists() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		Team team = Team.create("Futsal Team", null, "FUTSAL", 5, owner);
+		Team team = Team.create("Futsal Team", null, "FUTSAL", owner);
 		ReflectionTestUtils.setField(team, "deletedAt", LocalDateTime.now());
 		Team savedTeam = teamRepository.save(team);
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
@@ -475,7 +455,7 @@ class TeamControllerTest {
 	void getTeamApplicationsAllowsClosedTeam() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
-		Team team = Team.create("Futsal Team", null, "FUTSAL", 5, owner);
+		Team team = Team.create("Futsal Team", null, "FUTSAL", owner);
 		team.close();
 		Team savedTeam = teamRepository.save(team);
 		saveApplication(savedTeam, applicant, "pending", LocalDateTime.of(2026, 5, 21, 12, 0), TeamApplicationStatus.PENDING);

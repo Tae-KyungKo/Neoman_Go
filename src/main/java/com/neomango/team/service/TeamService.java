@@ -36,8 +36,6 @@ import lombok.RequiredArgsConstructor;
 @Transactional
 public class TeamService {
 
-	private static final int MIN_MEMBER_COUNT = 2;
-
 	private final TeamRepository teamRepository;
 	private final TeamMemberRepository teamMemberRepository;
 	private final UserRepository userRepository;
@@ -47,8 +45,6 @@ public class TeamService {
 			throw new BusinessException(ErrorCode.UNAUTHORIZED);
 		}
 
-		validateMaxMemberCount(request.maxMemberCount());
-
 		User owner = userRepository.findById(userId)
 			.orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
 		validateActiveUser(owner);
@@ -57,7 +53,6 @@ public class TeamService {
 			request.name(),
 			request.description(),
 			request.category(),
-			request.maxMemberCount(),
 			owner
 		);
 
@@ -141,12 +136,6 @@ public class TeamService {
 
 	private String normalizeCategory(String category) {
 		return StringUtils.hasText(category) ? category.trim() : category;
-	}
-
-	private void validateMaxMemberCount(Integer maxMemberCount) {
-		if (maxMemberCount == null || maxMemberCount < MIN_MEMBER_COUNT) {
-			throw new BusinessException(ErrorCode.INVALID_REQUEST);
-		}
 	}
 
 	private void validateActiveUser(User user) {
