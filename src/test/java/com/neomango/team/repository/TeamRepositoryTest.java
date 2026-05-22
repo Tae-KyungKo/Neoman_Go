@@ -51,7 +51,7 @@ class TeamRepositoryTest {
 	@DisplayName("save Team")
 	void saveTeam() {
 		User owner = saveUser("owner1@test.com", "owner1");
-		Team team = Team.create("Game Team", "Weekend game team", "GAME", 5, owner);
+		Team team = Team.create("Game Team", "Weekend game team", "GAME", owner);
 
 		Team savedTeam = teamRepository.saveAndFlush(team);
 
@@ -59,7 +59,6 @@ class TeamRepositoryTest {
 		assertThat(savedTeam.getName()).isEqualTo("Game Team");
 		assertThat(savedTeam.getDescription()).isEqualTo("Weekend game team");
 		assertThat(savedTeam.getCategory()).isEqualTo("GAME");
-		assertThat(savedTeam.getMaxMemberCount()).isEqualTo(5);
 		assertThat(savedTeam.getStatus()).isEqualTo(TeamStatus.RECRUITING);
 		assertThat(savedTeam.getCreatedBy().getId()).isEqualTo(owner.getId());
 		assertThat(savedTeam.getCreatedAt()).isNotNull();
@@ -72,7 +71,7 @@ class TeamRepositoryTest {
 	void saveUserTeamRelationThroughTeamMember() {
 		User owner = saveUser("owner2@test.com", "owner2");
 		User member = saveUser("member1@test.com", "member1");
-		Team team = teamRepository.saveAndFlush(Team.create("Sports Team", null, "SPORTS", 4, owner));
+		Team team = teamRepository.saveAndFlush(Team.create("Sports Team", null, "SPORTS", owner));
 
 		TeamMember teamMember = teamMemberRepository.saveAndFlush(TeamMember.createMember(team, member));
 
@@ -88,7 +87,7 @@ class TeamRepositoryTest {
 	@DisplayName("save owner TeamMember when Team is created")
 	void saveOwnerTeamMemberWhenTeamCreated() {
 		User owner = saveUser("owner3@test.com", "owner3");
-		Team team = teamRepository.saveAndFlush(Team.create("Owner Team", null, "GAME", 3, owner));
+		Team team = teamRepository.saveAndFlush(Team.create("Owner Team", null, "GAME", owner));
 
 		assertThat(team.getMembers()).hasSize(1);
 		TeamMember ownerMember = team.getMembers().get(0);
@@ -102,7 +101,7 @@ class TeamRepositoryTest {
 	@DisplayName("TeamMember team and user associations are lazy")
 	void teamMemberAssociationsAreLazy() {
 		User owner = saveUser("owner4@test.com", "owner4");
-		Team team = teamRepository.saveAndFlush(Team.create("Lazy Team", null, "GAME", 3, owner));
+		Team team = teamRepository.saveAndFlush(Team.create("Lazy Team", null, "GAME", owner));
 		Long teamMemberId = team.getMembers().get(0).getId();
 		entityManager.clear();
 
@@ -116,7 +115,7 @@ class TeamRepositoryTest {
 	@DisplayName("fail to save duplicate TeamMember for same team and user")
 	void duplicateTeamMemberFails() {
 		User owner = saveUser("owner5@test.com", "owner5");
-		Team team = teamRepository.saveAndFlush(Team.create("Duplicate Guard Team", null, "GAME", 3, owner));
+		Team team = teamRepository.saveAndFlush(Team.create("Duplicate Guard Team", null, "GAME", owner));
 
 		assertThatThrownBy(() -> {
 			teamMemberRepository.saveAndFlush(TeamMember.createMember(team, owner));
@@ -124,13 +123,12 @@ class TeamRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("currentMemberCount starts at 1 including owner")
-	void currentMemberCountStartsWithOwner() {
+	@DisplayName("Team starts with owner member")
+	void teamStartsWithOwnerMember() {
 		User owner = saveUser("owner6@test.com", "owner6");
 
-		Team team = teamRepository.saveAndFlush(Team.create("Count Team", null, "GAME", 6, owner));
+		Team team = teamRepository.saveAndFlush(Team.create("Count Team", null, "GAME", owner));
 
-		assertThat(team.getCurrentMemberCount()).isEqualTo(1);
 		assertThat(team.getMembers()).hasSize(1);
 	}
 
@@ -138,14 +136,13 @@ class TeamRepositoryTest {
 	@DisplayName("Team save cascades owner TeamMember after flush and clear")
 	void teamSaveCascadesOwnerTeamMemberAfterFlushAndClear() {
 		User owner = saveUser("owner7@test.com", "owner7");
-		Team team = Team.create("Cascade Team", null, "GAME", 4, owner);
+		Team team = Team.create("Cascade Team", null, "GAME", owner);
 
 		Team savedTeam = teamRepository.save(team);
 		entityManager.flush();
 		entityManager.clear();
 
 		Team foundTeam = teamRepository.findById(savedTeam.getId()).orElseThrow();
-		assertThat(foundTeam.getCurrentMemberCount()).isEqualTo(1);
 		assertThat(foundTeam.getMembers()).hasSize(1);
 		assertThat(teamMemberRepository.count()).isEqualTo(1);
 
@@ -168,11 +165,11 @@ class TeamRepositoryTest {
 	@DisplayName("find active team by id excludes deleted status and deletedAt")
 	void findByIdAndStatusNotAndDeletedAtIsNullExcludesDeletedTeam() {
 		User owner = saveUser("owner8@test.com", "owner8");
-		Team activeTeam = teamRepository.saveAndFlush(Team.create("Active Team", null, "GAME", 4, owner));
-		Team deletedStatusTeam = Team.create("Deleted Status Team", null, "GAME", 4, owner);
+		Team activeTeam = teamRepository.saveAndFlush(Team.create("Active Team", null, "GAME", owner));
+		Team deletedStatusTeam = Team.create("Deleted Status Team", null, "GAME", owner);
 		deletedStatusTeam.softDelete();
 		teamRepository.saveAndFlush(deletedStatusTeam);
-		Team deletedAtTeam = Team.create("Deleted At Team", null, "GAME", 4, owner);
+		Team deletedAtTeam = Team.create("Deleted At Team", null, "GAME", owner);
 		ReflectionTestUtils.setField(deletedAtTeam, "deletedAt", java.time.LocalDateTime.now());
 		teamRepository.saveAndFlush(deletedAtTeam);
 
@@ -189,11 +186,11 @@ class TeamRepositoryTest {
 	void existsActiveMemberByUserIdAndTeamCategoryFollowsTeamDeletePolicy() {
 		User owner = saveUser("owner9@test.com", "owner9");
 		User member = saveUser("member2@test.com", "member2");
-		Team recruitingTeam = teamRepository.saveAndFlush(Team.create("Recruiting Team", null, "GAME", 4, owner));
-		Team closedTeam = Team.create("Closed Team", null, "SPORTS", 4, owner);
+		Team recruitingTeam = teamRepository.saveAndFlush(Team.create("Recruiting Team", null, "GAME", owner));
+		Team closedTeam = Team.create("Closed Team", null, "SPORTS", owner);
 		closedTeam.close();
 		teamRepository.saveAndFlush(closedTeam);
-		Team deletedTeam = Team.create("Deleted Team", null, "MUSIC", 4, owner);
+		Team deletedTeam = Team.create("Deleted Team", null, "MUSIC", owner);
 		deletedTeam.softDelete();
 		teamRepository.saveAndFlush(deletedTeam);
 		teamMemberRepository.saveAndFlush(TeamMember.createMember(recruitingTeam, member));
@@ -210,7 +207,7 @@ class TeamRepositoryTest {
 	void teamApplicationFetchJoinMethodsInitializeRequiredAssociation() {
 		User owner = saveUser("owner10@test.com", "owner10");
 		User applicant = saveUser("applicant1@test.com", "applicant1");
-		Team team = teamRepository.saveAndFlush(Team.create("Application Team", null, "GAME", 4, owner));
+		Team team = teamRepository.saveAndFlush(Team.create("Application Team", null, "GAME", owner));
 		TeamApplication application = teamApplicationRepository.saveAndFlush(
 			TeamApplication.create(team, applicant, "message")
 		);

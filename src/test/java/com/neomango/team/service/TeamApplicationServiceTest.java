@@ -390,7 +390,7 @@ class TeamApplicationServiceTest {
 	}
 
 	private Team team(Long teamId, User owner, String category) {
-		Team team = Team.create("Team", null, category, 5, owner);
+		Team team = Team.create("Team", null, category, owner);
 		ReflectionTestUtils.setField(team, "id", teamId);
 		return team;
 	}

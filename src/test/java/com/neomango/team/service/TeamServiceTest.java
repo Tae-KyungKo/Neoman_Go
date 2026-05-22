@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -57,7 +56,7 @@ class TeamServiceTest {
 	@Test
 	void createTeamReturnsTeamResponse() {
 		User owner = activeUser();
-		TeamCreateRequest request = request(5);
+		TeamCreateRequest request = request();
 		when(userRepository.findById(USER_ID)).thenReturn(Optional.of(owner));
 		when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> {
 			Team team = invocation.getArgument(0);
@@ -71,8 +70,6 @@ class TeamServiceTest {
 		assertThat(response.name()).isEqualTo("Game Team");
 		assertThat(response.description()).isEqualTo("Weekend game team");
 		assertThat(response.category()).isEqualTo("GAME");
-		assertThat(response.maxMemberCount()).isEqualTo(5);
-		assertThat(response.currentMemberCount()).isEqualTo(1);
 		assertThat(response.status()).isEqualTo(TeamStatus.RECRUITING);
 		assertThat(response.ownerId()).isEqualTo(USER_ID);
 		assertThat(response.ownerNickname()).isEqualTo("owner");
@@ -84,7 +81,7 @@ class TeamServiceTest {
 		when(userRepository.findById(USER_ID)).thenReturn(Optional.of(owner));
 		when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-		teamService.createTeam(USER_ID, request(5));
+		teamService.createTeam(USER_ID, request());
 
 		ArgumentCaptor<Team> teamCaptor = ArgumentCaptor.forClass(Team.class);
 		verify(teamRepository).save(teamCaptor.capture());
@@ -97,23 +94,10 @@ class TeamServiceTest {
 	}
 
 	@Test
-	void createTeamCurrentMemberCountIsOne() {
-		User owner = activeUser();
-		when(userRepository.findById(USER_ID)).thenReturn(Optional.of(owner));
-		when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-		teamService.createTeam(USER_ID, request(5));
-
-		ArgumentCaptor<Team> teamCaptor = ArgumentCaptor.forClass(Team.class);
-		verify(teamRepository).save(teamCaptor.capture());
-		assertThat(teamCaptor.getValue().getCurrentMemberCount()).isEqualTo(1);
-	}
-
-	@Test
 	void createTeamThrowsExceptionWhenUserDoesNotExist() {
 		when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> teamService.createTeam(USER_ID, request(5)))
+		assertThatThrownBy(() -> teamService.createTeam(USER_ID, request()))
 			.isInstanceOf(BusinessException.class)
 			.extracting("errorCode")
 			.isEqualTo(ErrorCode.UNAUTHORIZED);
@@ -125,20 +109,10 @@ class TeamServiceTest {
 		owner.softDelete();
 		when(userRepository.findById(USER_ID)).thenReturn(Optional.of(owner));
 
-		assertThatThrownBy(() -> teamService.createTeam(USER_ID, request(5)))
+		assertThatThrownBy(() -> teamService.createTeam(USER_ID, request()))
 			.isInstanceOf(BusinessException.class)
 			.extracting("errorCode")
 			.isEqualTo(ErrorCode.UNAUTHORIZED);
-	}
-
-	@Test
-	void createTeamThrowsExceptionWhenMaxMemberCountIsLessThanTwo() {
-		assertThatThrownBy(() -> teamService.createTeam(USER_ID, request(1)))
-			.isInstanceOf(BusinessException.class)
-			.extracting("errorCode")
-			.isEqualTo(ErrorCode.INVALID_REQUEST);
-
-		verifyNoInteractions(userRepository, teamRepository);
 	}
 
 	@Test
@@ -158,7 +132,6 @@ class TeamServiceTest {
 		assertThat(summary.id()).isEqualTo(10L);
 		assertThat(summary.ownerId()).isEqualTo(USER_ID);
 		assertThat(summary.ownerNickname()).isEqualTo("owner");
-		assertThat(summary.currentMemberCount()).isEqualTo(1);
 	}
 
 	@Test
@@ -402,12 +375,12 @@ class TeamServiceTest {
 			.isEqualTo(ErrorCode.TEAM_OWNER_REQUIRED);
 	}
 
-	private TeamCreateRequest request(int maxMemberCount) {
-		return new TeamCreateRequest("Game Team", "Weekend game team", "GAME", maxMemberCount);
+	private TeamCreateRequest request() {
+		return new TeamCreateRequest("Game Team", "Weekend game team", "GAME");
 	}
 
 	private Team savedTeam(Long teamId, User owner, String category) {
-		Team team = Team.create("Game Team", "Weekend game team", category, 5, owner);
+		Team team = Team.create("Game Team", "Weekend game team", category, owner);
 		ReflectionTestUtils.setField(team, "id", teamId);
 		return team;
 	}

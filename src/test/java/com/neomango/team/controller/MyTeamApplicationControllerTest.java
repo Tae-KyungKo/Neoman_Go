@@ -62,12 +62,12 @@ class MyTeamApplicationControllerTest {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
 		User otherApplicant = userRepository.save(User.create("other@test.com", "encoded-password", "other"));
-		Team pendingTeam = teamRepository.save(Team.create("Pending Team", null, "FOOTBALL", 5, owner));
-		Team approvedTeam = teamRepository.save(Team.create("Approved Team", null, "BASEBALL", 5, owner));
-		Team rejectedTeam = teamRepository.save(Team.create("Rejected Team", null, "BASKETBALL", 5, owner));
-		Team canceledTeam = teamRepository.save(Team.create("Canceled Team", null, "TENNIS", 5, owner));
-		Team deletedTeam = teamRepository.save(Team.create("Deleted Team", null, "FUTSAL", 5, owner));
-		Team otherTeam = teamRepository.save(Team.create("Other Team", null, "GAME", 5, owner));
+		Team pendingTeam = teamRepository.save(Team.create("Pending Team", null, "FOOTBALL", owner));
+		Team approvedTeam = teamRepository.save(Team.create("Approved Team", null, "BASEBALL", owner));
+		Team rejectedTeam = teamRepository.save(Team.create("Rejected Team", null, "BASKETBALL", owner));
+		Team canceledTeam = teamRepository.save(Team.create("Canceled Team", null, "TENNIS", owner));
+		Team deletedTeam = teamRepository.save(Team.create("Deleted Team", null, "FUTSAL", owner));
+		Team otherTeam = teamRepository.save(Team.create("Other Team", null, "GAME", owner));
 
 		saveApplication(pendingTeam, applicant, "pending", LocalDateTime.of(2026, 5, 21, 12, 0), "PENDING");
 		saveApplication(approvedTeam, applicant, "approved", LocalDateTime.of(2026, 5, 21, 13, 0), "APPROVED");

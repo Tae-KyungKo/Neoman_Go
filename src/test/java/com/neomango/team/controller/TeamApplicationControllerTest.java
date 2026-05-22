@@ -59,7 +59,7 @@ class TeamApplicationControllerTest {
 	void cancelTeamApplicationReturnsCanceledApplicationWhenAuthenticatedApplicantRequests() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
-		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", 5, owner));
+		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		TeamApplication application = teamApplicationRepository.save(
 			TeamApplication.create(team, applicant, "가입하고 싶습니다.")
 		);

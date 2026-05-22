@@ -44,12 +44,6 @@ public class Team {
 	@Column(nullable = false, length = 50)
 	private String category;
 
-	@Column(nullable = false)
-	private Integer maxMemberCount;
-
-	@Column(nullable = false)
-	private Integer currentMemberCount;
-
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private TeamStatus status;
@@ -69,12 +63,10 @@ public class Team {
 	@OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<TeamMember> members = new ArrayList<>();
 
-	private Team(String name, String description, String category, Integer maxMemberCount, User createdBy) {
+	private Team(String name, String description, String category, User createdBy) {
 		this.name = name;
 		this.description = description;
 		this.category = category;
-		this.maxMemberCount = maxMemberCount;
-		this.currentMemberCount = 0;
 		this.status = TeamStatus.RECRUITING;
 		this.createdBy = createdBy;
 	}
@@ -83,17 +75,15 @@ public class Team {
 		String name,
 		String description,
 		String category,
-		Integer maxMemberCount,
 		User createdBy
 	) {
-		Team team = new Team(name, description, category, maxMemberCount, createdBy);
+		Team team = new Team(name, description, category, createdBy);
 		team.addMember(TeamMember.createOwner(team, createdBy));
 		return team;
 	}
 
 	public void addMember(TeamMember teamMember) {
 		this.members.add(teamMember);
-		this.currentMemberCount++;
 	}
 
 	public void close() {
