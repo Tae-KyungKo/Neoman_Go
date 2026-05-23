@@ -9,4 +9,6 @@ public interface UserCategoryMembershipRepository extends JpaRepository<UserCate
 	boolean existsByUserIdAndCategory(Long userId, String category);
 
 	long countByUserIdAndCategory(Long userId, String category);
+
+	long deleteByUserIdAndCategory(Long userId, String category);
 }

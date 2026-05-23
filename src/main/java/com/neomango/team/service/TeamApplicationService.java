@@ -254,7 +254,7 @@ public class TeamApplicationService {
 		TeamMember ownerMember = teamMemberRepository.findByTeamIdAndRole(team.getId(), TeamMemberRole.OWNER)
 			.orElseThrow(() -> new BusinessException(ErrorCode.TEAM_APPLICATION_LIST_OWNER_REQUIRED));
 
-		if (!ownerMember.getUser().getId().equals(requesterId) || ownerMember.getStatus() != TeamMemberStatus.ACTIVE) {
+		if (!ownerMember.getUser().getId().equals(requesterId) || !ownerMember.isActive()) {
 			throw new BusinessException(ErrorCode.TEAM_APPLICATION_LIST_OWNER_REQUIRED);
 		}
 	}
@@ -265,7 +265,7 @@ public class TeamApplicationService {
 
 		if (!ownerMember.getUser().getId().equals(loginUserId)
 			|| ownerMember.getRole() != TeamMemberRole.OWNER
-			|| ownerMember.getStatus() != TeamMemberStatus.ACTIVE) {
+			|| !ownerMember.isActive()) {
 			throw new NotTeamOwnerException();
 		}
 	}

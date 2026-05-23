@@ -2,6 +2,8 @@ package com.neomango.team.entity;
 
 import java.time.LocalDateTime;
 
+import com.neomango.team.exception.NotTeamMemberException;
+import com.neomango.team.exception.NotTeamOwnerException;
 import com.neomango.user.entity.User;
 
 import jakarta.persistence.Column;
@@ -66,5 +68,33 @@ public class TeamMember {
 
 	public static TeamMember createMember(Team team, User user) {
 		return new TeamMember(team, user, TeamMemberRole.MEMBER);
+	}
+
+	public boolean isActive() {
+		return this.status == TeamMemberStatus.ACTIVE;
+	}
+
+	public boolean isOwner() {
+		return this.role == TeamMemberRole.OWNER;
+	}
+
+	public void deactivate() {
+		this.status = TeamMemberStatus.INACTIVE;
+	}
+
+	public void changeRole(TeamMemberRole role) {
+		this.role = role;
+	}
+
+	public void validateActive() {
+		if (!isActive()) {
+			throw new NotTeamMemberException();
+		}
+	}
+
+	public void validateOwner() {
+		if (!isOwner()) {
+			throw new NotTeamOwnerException();
+		}
 	}
 }

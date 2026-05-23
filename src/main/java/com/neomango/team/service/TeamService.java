@@ -21,7 +21,6 @@ import com.neomango.team.dto.TeamSummaryResponse;
 import com.neomango.team.entity.Team;
 import com.neomango.team.entity.TeamMember;
 import com.neomango.team.entity.TeamMemberRole;
-import com.neomango.team.entity.TeamMemberStatus;
 import com.neomango.team.entity.TeamStatus;
 import com.neomango.team.repository.TeamMemberRepository;
 import com.neomango.team.repository.TeamRepository;
@@ -145,7 +144,7 @@ public class TeamService {
 	}
 
 	private void validateActiveOwner(TeamMember ownerMember, Long userId) {
-		if (!ownerMember.getUser().getId().equals(userId) || ownerMember.getStatus() != TeamMemberStatus.ACTIVE) {
+		if (!ownerMember.getUser().getId().equals(userId) || !ownerMember.isActive()) {
 			throw new BusinessException(ErrorCode.TEAM_OWNER_REQUIRED);
 		}
 	}

@@ -225,6 +225,85 @@ class TeamRepositoryTest {
 	}
 
 	@Test
+	@DisplayName("active TeamMember queries exclude inactive members")
+	void activeTeamMemberQueriesExcludeInactiveMembers() {
+		User owner = saveUser("owner-active-query@test.com", "ownerActiveQuery");
+		User activeUser = saveUser("active-member@test.com", "activeMember");
+		User inactiveUser = saveUser("inactive-member@test.com", "inactiveMember");
+		Team team = teamRepository.saveAndFlush(Team.create("Active Query Team", null, "GAME", owner));
+		TeamMember activeMember = teamMemberRepository.saveAndFlush(TeamMember.createMember(team, activeUser));
+		TeamMember inactiveMember = TeamMember.createMember(team, inactiveUser);
+		inactiveMember.deactivate();
+		teamMemberRepository.saveAndFlush(inactiveMember);
+		entityManager.clear();
+
+		assertThat(teamMemberRepository.findActiveMembersByTeamId(team.getId()))
+			.extracting(teamMember -> teamMember.getUser().getId())
+			.contains(activeUser.getId())
+			.doesNotContain(inactiveUser.getId());
+		assertThat(teamMemberRepository.findActiveMemberByTeamIdAndUserId(team.getId(), activeUser.getId()))
+			.isPresent();
+		assertThat(teamMemberRepository.findActiveMemberByTeamIdAndUserId(team.getId(), inactiveUser.getId()))
+			.isEmpty();
+		assertThat(teamMemberRepository.findActiveMemberById(activeMember.getId())).isPresent();
+		assertThat(teamMemberRepository.findActiveMemberById(inactiveMember.getId())).isEmpty();
+		assertThat(teamMemberRepository.existsActiveMemberByTeamIdAndUserId(team.getId(), activeUser.getId())).isTrue();
+		assertThat(teamMemberRepository.existsActiveMemberByTeamIdAndUserId(team.getId(), inactiveUser.getId())).isFalse();
+	}
+
+	@Test
+	@DisplayName("find active owner by team id returns active owner only")
+	void findActiveOwnerByTeamIdReturnsActiveOwnerOnly() {
+		User owner = saveUser("owner-active-owner@test.com", "ownerActiveOwner");
+		User nextOwner = saveUser("next-owner@test.com", "nextOwner");
+		Team team = teamRepository.saveAndFlush(Team.create("Owner Query Team", null, "GAME", owner));
+		TeamMember originalOwner = team.getMembers().get(0);
+		originalOwner.deactivate();
+		teamMemberRepository.saveAndFlush(TeamMember.createOwner(team, nextOwner));
+		entityManager.flush();
+		entityManager.clear();
+
+		TeamMember activeOwner = teamMemberRepository.findActiveOwnerByTeamId(team.getId()).orElseThrow();
+
+		assertThat(activeOwner.getUser().getId()).isEqualTo(nextOwner.getId());
+		assertThat(activeOwner.getStatus()).isEqualTo(TeamMemberStatus.ACTIVE);
+	}
+
+	@Test
+	@DisplayName("count active members by team id counts active members only")
+	void countActiveMembersByTeamIdCountsActiveMembersOnly() {
+		User owner = saveUser("owner-count-active@test.com", "ownerCountActive");
+		User activeUser = saveUser("count-active@test.com", "countActive");
+		User inactiveUser = saveUser("count-inactive@test.com", "countInactive");
+		Team team = teamRepository.saveAndFlush(Team.create("Count Active Team", null, "GAME", owner));
+		teamMemberRepository.saveAndFlush(TeamMember.createMember(team, activeUser));
+		TeamMember inactiveMember = TeamMember.createMember(team, inactiveUser);
+		inactiveMember.deactivate();
+		teamMemberRepository.saveAndFlush(inactiveMember);
+
+		assertThat(teamMemberRepository.countActiveMembersByTeamId(team.getId())).isEqualTo(2);
+		assertThat(teamMemberRepository.countActiveOwnersByTeamId(team.getId())).isEqualTo(1);
+	}
+
+	@Test
+	@DisplayName("delete UserCategoryMembership by user id and category deletes matching category only")
+	void deleteByUserIdAndCategoryDeletesMatchingCategoryOnly() {
+		User owner = saveUser("owner-delete-category@test.com", "ownerDeleteCategory");
+		User member = saveUser("member-delete-category@test.com", "memberDeleteCategory");
+		Team gameTeam = teamRepository.saveAndFlush(Team.create("Game Delete Category Team", null, "GAME", owner));
+		Team sportsTeam = teamRepository.saveAndFlush(Team.create("Sports Delete Category Team", null, "SPORTS", owner));
+		userCategoryMembershipRepository.saveAndFlush(UserCategoryMembership.create(member, "GAME", gameTeam));
+		userCategoryMembershipRepository.saveAndFlush(UserCategoryMembership.create(member, "SPORTS", sportsTeam));
+
+		long deletedCount = userCategoryMembershipRepository.deleteByUserIdAndCategory(member.getId(), "GAME");
+		entityManager.flush();
+
+		assertThat(deletedCount).isEqualTo(1);
+		assertThat(userCategoryMembershipRepository.existsByUserIdAndCategory(member.getId(), "GAME")).isFalse();
+		assertThat(userCategoryMembershipRepository.existsByUserIdAndCategory(member.getId(), "SPORTS")).isTrue();
+	}
+
+	@Test
 	@DisplayName("team application fetch join methods initialize required association")
 	void teamApplicationFetchJoinMethodsInitializeRequiredAssociation() {
 		User owner = saveUser("owner10@test.com", "owner10");
