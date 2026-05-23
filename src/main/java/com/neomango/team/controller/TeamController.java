@@ -29,9 +29,12 @@ import com.neomango.team.dto.TeamApplicationOwnerResponse;
 import com.neomango.team.dto.TeamApplicationResponse;
 import com.neomango.team.dto.TeamCreateRequest;
 import com.neomango.team.dto.TeamDetailResponse;
+import com.neomango.team.dto.TeamMemberListResponse;
+import com.neomango.team.dto.OwnerDelegationRequest;
 import com.neomango.team.dto.TeamResponse;
 import com.neomango.team.dto.TeamSummaryResponse;
 import com.neomango.team.service.TeamApplicationService;
+import com.neomango.team.service.TeamMemberService;
 import com.neomango.team.service.TeamService;
 
 import jakarta.validation.Valid;
@@ -44,6 +47,7 @@ public class TeamController {
 
 	private final TeamService teamService;
 	private final TeamApplicationService teamApplicationService;
+	private final TeamMemberService teamMemberService;
 
 	@GetMapping
 	public ApiResponse<Page<TeamSummaryResponse>> getTeams(
@@ -60,6 +64,59 @@ public class TeamController {
 	@GetMapping("/{teamId}")
 	public ApiResponse<TeamDetailResponse> getTeamDetail(@PathVariable Long teamId) {
 		return ApiResponse.success(teamService.getTeamDetail(teamId));
+	}
+
+	@GetMapping("/{teamId}/members")
+	public ApiResponse<List<TeamMemberListResponse>> getTeamMembers(
+		@AuthenticationPrincipal AuthenticatedUser currentUser,
+		@PathVariable Long teamId
+	) {
+		if (currentUser == null) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+		}
+
+		return ApiResponse.success(teamMemberService.getActiveTeamMembers(teamId));
+	}
+
+	@PostMapping("/{teamId}/members/me/leave")
+	public ApiResponse<Void> leaveTeam(
+		@AuthenticationPrincipal AuthenticatedUser currentUser,
+		@PathVariable Long teamId
+	) {
+		if (currentUser == null) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+		}
+
+		teamMemberService.leaveTeam(teamId, currentUser.userId());
+		return ApiResponse.successWithoutData();
+	}
+
+	@PostMapping("/{teamId}/members/{teamMemberId}/kick")
+	public ApiResponse<Void> kickMember(
+		@AuthenticationPrincipal AuthenticatedUser currentUser,
+		@PathVariable Long teamId,
+		@PathVariable Long teamMemberId
+	) {
+		if (currentUser == null) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+		}
+
+		teamMemberService.kickMember(teamId, teamMemberId, currentUser.userId());
+		return ApiResponse.successWithoutData();
+	}
+
+	@PostMapping("/{teamId}/owner/delegate")
+	public ApiResponse<Void> delegateOwner(
+		@AuthenticationPrincipal AuthenticatedUser currentUser,
+		@PathVariable Long teamId,
+		@Valid @RequestBody OwnerDelegationRequest request
+	) {
+		if (currentUser == null) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+		}
+
+		teamMemberService.delegateOwner(teamId, currentUser.userId(), request.targetTeamMemberId());
+		return ApiResponse.successWithoutData();
 	}
 
 	@PostMapping

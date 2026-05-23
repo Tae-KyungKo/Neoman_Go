@@ -296,7 +296,7 @@ class TeamServiceTest {
 		User owner = activeUser();
 		Team team = savedTeam(20L, owner, "GAME");
 		TeamMember ownerMember = team.getMembers().get(0);
-		ReflectionTestUtils.setField(ownerMember, "status", TeamMemberStatus.LEFT);
+		ReflectionTestUtils.setField(ownerMember, "status", TeamMemberStatus.INACTIVE);
 		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(20L, TeamStatus.DELETED))
 			.thenReturn(Optional.of(team));
 		when(teamMemberRepository.findByTeamIdAndRole(20L, TeamMemberRole.OWNER)).thenReturn(Optional.of(ownerMember));
@@ -364,7 +364,7 @@ class TeamServiceTest {
 		User owner = activeUser();
 		Team team = savedTeam(24L, owner, "GAME");
 		TeamMember ownerMember = team.getMembers().get(0);
-		ReflectionTestUtils.setField(ownerMember, "status", TeamMemberStatus.KICKED);
+		ReflectionTestUtils.setField(ownerMember, "status", TeamMemberStatus.INACTIVE);
 		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(24L, TeamStatus.DELETED))
 			.thenReturn(Optional.of(team));
 		when(teamMemberRepository.findByTeamIdAndRole(24L, TeamMemberRole.OWNER)).thenReturn(Optional.of(ownerMember));

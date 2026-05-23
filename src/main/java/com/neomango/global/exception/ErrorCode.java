@@ -25,6 +25,16 @@ public enum ErrorCode {
 	DUPLICATE_TEAM_MEMBER(HttpStatus.CONFLICT, "T004", "이미 존재하는 팀 멤버입니다."),
 	TEAM_CLOSED(HttpStatus.CONFLICT, "T006", "마감된 팀입니다."),
 	ALREADY_CATEGORY_TEAM_MEMBER(HttpStatus.CONFLICT, "T007", "이미 해당 카테고리의 팀에 소속되었습니다."),
+	TEAM_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "T008", "해당 팀의 멤버가 아닙니다."),
+	CANNOT_KICK_SELF(HttpStatus.CONFLICT, "T009", "자기 자신을 강퇴할 수 없습니다."),
+	CANNOT_LEAVE_OWNER_WITHOUT_DELEGATION(
+		HttpStatus.CONFLICT,
+		"T010",
+		"현재 탈퇴하려는 팀의 주장입니다. 다음 주장을 선택하고 탈퇴하여 주십시오."
+	),
+	INVALID_OWNER_DELEGATION_TARGET(HttpStatus.CONFLICT, "T011", "위임 대상은 같은 팀의 활성 멤버여야 합니다."),
+	CANNOT_KICK_OWNER(HttpStatus.CONFLICT, "T012", "팀 주장은 강퇴할 수 없습니다."),
+	TEAM_OWNER_INVARIANT_VIOLATED(HttpStatus.CONFLICT, "T013", "활성 팀 주장은 반드시 한 명이어야 합니다."),
 	TEAM_APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "TA001", "존재하지 않는 가입 신청입니다."),
 	DUPLICATE_PENDING_TEAM_APPLICATION(HttpStatus.CONFLICT, "TA002", "이미 가입 신청한 팀입니다."),
 	INVALID_TEAM_APPLICATION_STATUS(HttpStatus.CONFLICT, "TA003", "처리할 수 없는 가입 신청 상태입니다."),
