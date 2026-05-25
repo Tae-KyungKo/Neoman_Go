@@ -62,7 +62,7 @@ class MyTeamApplicationControllerTest {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
 		User otherApplicant = userRepository.save(User.create("other@test.com", "encoded-password", "other"));
-		Team pendingTeam = teamRepository.save(Team.create("Pending Team", null, "FOOTBALL", owner));
+		Team pendingTeam = teamRepository.save(Team.create("Pending Team", null, "SOCCER", owner));
 		Team approvedTeam = teamRepository.save(Team.create("Approved Team", null, "BASEBALL", owner));
 		Team rejectedTeam = teamRepository.save(Team.create("Rejected Team", null, "BASKETBALL", owner));
 		Team canceledTeam = teamRepository.save(Team.create("Canceled Team", null, "TENNIS", owner));
