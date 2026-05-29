@@ -35,12 +35,16 @@ public enum ErrorCode {
 	INVALID_OWNER_DELEGATION_TARGET(HttpStatus.CONFLICT, "T011", "위임 대상은 같은 팀의 활성 멤버여야 합니다."),
 	CANNOT_KICK_OWNER(HttpStatus.CONFLICT, "T012", "팀 주장은 강퇴할 수 없습니다."),
 	TEAM_OWNER_INVARIANT_VIOLATED(HttpStatus.CONFLICT, "T013", "활성 팀 주장은 반드시 한 명이어야 합니다."),
+
 	TEAM_APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "TA001", "존재하지 않는 가입 신청입니다."),
 	DUPLICATE_PENDING_TEAM_APPLICATION(HttpStatus.CONFLICT, "TA002", "이미 가입 신청한 팀입니다."),
 	INVALID_TEAM_APPLICATION_STATUS(HttpStatus.CONFLICT, "TA003", "처리할 수 없는 가입 신청 상태입니다."),
 	TEAM_APPLICATION_CANCEL_FORBIDDEN(HttpStatus.FORBIDDEN, "TA004", "본인의 가입 신청만 취소할 수 있습니다."),
 	ONLY_PENDING_TEAM_APPLICATION_CANCELABLE(HttpStatus.CONFLICT, "TA005", "대기 중인 가입 신청만 취소할 수 있습니다."),
-	TEAM_APPLICATION_LIST_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "TA006", "팀 주장만 가입 신청 목록을 조회할 수 있습니다.");
+	TEAM_APPLICATION_LIST_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "TA006", "팀 주장만 가입 신청 목록을 조회할 수 있습니다."),
+
+	POST_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "존재하지 않는 게시글입니다."),
+	POST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "P002", "작성자만 수정 또는 삭제할 수 있습니다.");
 
 	private final HttpStatus httpStatus;
 	private final String code;

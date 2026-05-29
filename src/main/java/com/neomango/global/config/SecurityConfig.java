@@ -43,6 +43,7 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/reissue").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/teams", "/api/teams/*").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/categories/*/posts", "/api/posts/*").permitAll()
 				.requestMatchers("/error").permitAll()
 				.anyRequest().authenticated()
 			)
