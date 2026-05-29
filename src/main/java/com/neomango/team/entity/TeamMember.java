@@ -2,6 +2,7 @@ package com.neomango.team.entity;
 
 import java.time.LocalDateTime;
 
+import com.neomango.team.exception.DuplicateTeamMemberException;
 import com.neomango.team.exception.NotTeamMemberException;
 import com.neomango.team.exception.NotTeamOwnerException;
 import com.neomango.user.entity.User;
@@ -80,6 +81,16 @@ public class TeamMember {
 
 	public void deactivate() {
 		this.status = TeamMemberStatus.INACTIVE;
+	}
+
+	public void rejoinAsMember() {
+		if (isActive()) {
+			throw new DuplicateTeamMemberException();
+		}
+
+		this.role = TeamMemberRole.MEMBER;
+		this.status = TeamMemberStatus.ACTIVE;
+		this.joinedAt = LocalDateTime.now();
 	}
 
 	public void changeRole(TeamMemberRole role) {

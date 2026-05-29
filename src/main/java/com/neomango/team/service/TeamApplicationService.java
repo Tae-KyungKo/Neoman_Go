@@ -20,7 +20,6 @@ import com.neomango.team.entity.TeamMemberRole;
 import com.neomango.team.entity.TeamMemberStatus;
 import com.neomango.team.entity.TeamStatus;
 import com.neomango.team.entity.UserCategoryMembership;
-import com.neomango.team.exception.DuplicateTeamMemberException;
 import com.neomango.team.exception.NotTeamOwnerException;
 import com.neomango.team.repository.TeamApplicationRepository;
 import com.neomango.team.repository.TeamMemberRepository;
@@ -94,14 +93,10 @@ public class TeamApplicationService {
 		Team team = application.getTeam();
 		User applicant = application.getApplicant();
 		validateApplicationProcessOwner(team, loginUserId);
-		validateNoDuplicateTeamMember(team, applicant);
 		validateApplicantIsNotTeamMember(team, applicant);
 		validateApplicantIsNotSameCategoryMember(team, applicant);
 		createUserCategoryMembership(applicant, team);
-
-		TeamMember teamMember = TeamMember.createMember(team, applicant);
-		team.addMember(teamMember);
-		teamMemberRepository.save(teamMember);
+		activateOrCreateTeamMember(team, applicant);
 
 		application.approve();
 		cancelOtherPendingApplicationsInSameCategory(application);
@@ -213,10 +208,16 @@ public class TeamApplicationService {
 		}
 	}
 
-	private void validateNoDuplicateTeamMember(Team team, User applicant) {
-		if (teamMemberRepository.existsByTeamIdAndUserId(team.getId(), applicant.getId())) {
-			throw new DuplicateTeamMemberException();
-		}
+	private void activateOrCreateTeamMember(Team team, User applicant) {
+		teamMemberRepository.findByTeamIdAndUserId(team.getId(), applicant.getId())
+			.ifPresentOrElse(
+				TeamMember::rejoinAsMember,
+				() -> {
+					TeamMember teamMember = TeamMember.createMember(team, applicant);
+					team.addMember(teamMember);
+					teamMemberRepository.save(teamMember);
+				}
+			);
 	}
 
 	private void cancelOtherPendingApplicationsInSameCategory(TeamApplication approvedApplication) {

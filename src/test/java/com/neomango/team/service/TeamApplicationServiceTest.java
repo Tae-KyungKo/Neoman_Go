@@ -348,11 +348,11 @@ class TeamApplicationServiceTest {
 		when(teamApplicationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(application));
 		when(teamMemberRepository.findByTeamIdAndRole(TEAM_ID, TeamMemberRole.OWNER))
 			.thenReturn(Optional.of(team.getMembers().get(0)));
-		when(teamMemberRepository.existsByTeamIdAndUserId(TEAM_ID, APPLICANT_ID)).thenReturn(false);
 		when(teamMemberRepository.existsByTeamIdAndUserIdAndStatus(TEAM_ID, APPLICANT_ID, TeamMemberStatus.ACTIVE))
 			.thenReturn(false);
 		when(teamMemberRepository.existsActiveMemberByUserIdAndTeamCategory(APPLICANT_ID, "FUTSAL"))
 			.thenReturn(false);
+		when(teamMemberRepository.findByTeamIdAndUserId(TEAM_ID, APPLICANT_ID)).thenReturn(Optional.empty());
 		when(teamApplicationRepository.findOtherPendingApplicationsInSameCategory(100L, APPLICANT_ID, "FUTSAL"))
 			.thenReturn(List.of());
 
@@ -424,11 +424,11 @@ class TeamApplicationServiceTest {
 		when(teamApplicationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(application));
 		when(teamMemberRepository.findByTeamIdAndRole(TEAM_ID, TeamMemberRole.OWNER))
 			.thenReturn(Optional.of(team.getMembers().get(0)));
-		when(teamMemberRepository.existsByTeamIdAndUserId(TEAM_ID, APPLICANT_ID)).thenReturn(false);
 		when(teamMemberRepository.existsByTeamIdAndUserIdAndStatus(TEAM_ID, APPLICANT_ID, TeamMemberStatus.ACTIVE))
 			.thenReturn(false);
 		when(teamMemberRepository.existsActiveMemberByUserIdAndTeamCategory(APPLICANT_ID, "FUTSAL"))
 			.thenReturn(false);
+		when(teamMemberRepository.findByTeamIdAndUserId(TEAM_ID, APPLICANT_ID)).thenReturn(Optional.empty());
 		when(teamApplicationRepository.findOtherPendingApplicationsInSameCategory(100L, APPLICANT_ID, "FUTSAL"))
 			.thenReturn(List.of(otherApplication));
 

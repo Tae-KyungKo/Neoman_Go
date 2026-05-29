@@ -234,7 +234,7 @@ class TeamApplicationControllerTest {
 	}
 
 	@Test
-	void approveApplication_failsWhenDuplicateTeamMemberExists() throws Exception {
+	void approveApplication_failsWhenApplicantIsActiveTeamMember() throws Exception {
 		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
 		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
@@ -247,7 +247,7 @@ class TeamApplicationControllerTest {
 		mockMvc.perform(post("/api/team-applications/{applicationId}/approve", application.getId())
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isConflict())
-			.andExpect(jsonPath("$.code").value("T004"));
+			.andExpect(jsonPath("$.code").value("T003"));
 	}
 
 	@Test
