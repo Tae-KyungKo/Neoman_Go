@@ -96,6 +96,31 @@ class JwtAuthenticationFilterTest {
 	}
 
 	@Test
+	void permitAllLoginIgnoresInvalidAuthorizationHeader() throws Exception {
+		mockMvc.perform(post("/api/auth/login")
+				.header("Authorization", "Bearer invalid-token")
+				.contentType("application/json")
+				.content("{}"))
+			.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void permitAllSignupAllowsRequestWithoutToken() throws Exception {
+		mockMvc.perform(post("/api/auth/signup")
+				.contentType("application/json")
+				.content("{}"))
+			.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void permitAllReissueAllowsRequestWithoutToken() throws Exception {
+		mockMvc.perform(post("/api/auth/reissue")
+				.contentType("application/json")
+				.content("{}"))
+			.andExpect(status().isBadRequest());
+	}
+
+	@Test
 	void protectedApiRejectsRequestWithoutToken() throws Exception {
 		mockMvc.perform(get("/api/test/auth"))
 			.andExpect(status().isUnauthorized());

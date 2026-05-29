@@ -2,6 +2,7 @@ package com.neomango.auth.jwt;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -25,8 +26,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	private static final String AUTHORIZATION_HEADER = "Authorization";
 	private static final String BEARER_PREFIX = "Bearer ";
 	private static final String ROLE_PREFIX = "ROLE_";
+	private static final Set<String> PUBLIC_ENDPOINTS = Set.of(
+		"/api/auth/login",
+		"/api/auth/signup",
+		"/api/auth/reissue"
+	);
 
 	private final JwtTokenProvider jwtTokenProvider;
+
+	@Override
+	protected boolean shouldNotFilter(HttpServletRequest request) {
+		return PUBLIC_ENDPOINTS.contains(request.getServletPath());
+	}
 
 	@Override
 	protected void doFilterInternal(
