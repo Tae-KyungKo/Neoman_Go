@@ -17,4 +17,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
 	@EntityGraph(attributePaths = "author")
 	Optional<Post> findByIdAndStatus(Long id, PostStatus status);
+
+	boolean existsByIdAndStatus(Long id, PostStatus status);
 }

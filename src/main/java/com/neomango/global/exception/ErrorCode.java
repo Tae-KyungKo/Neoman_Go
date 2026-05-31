@@ -44,7 +44,10 @@ public enum ErrorCode {
 	TEAM_APPLICATION_LIST_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "TA006", "팀 주장만 가입 신청 목록을 조회할 수 있습니다."),
 
 	POST_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "존재하지 않는 게시글입니다."),
-	POST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "P002", "작성자만 수정 또는 삭제할 수 있습니다.");
+	POST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "P002", "작성자만 수정 또는 삭제할 수 있습니다."),
+
+	COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "존재하지 않는 댓글입니다."),
+	COMMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "C002", "작성자만 댓글을 수정 또는 삭제할 수 있습니다.");
 
 	private final HttpStatus httpStatus;
 	private final String code;

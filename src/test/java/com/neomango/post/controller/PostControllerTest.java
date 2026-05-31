@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neomango.auth.jwt.JwtTokenProvider;
+import com.neomango.comment.repository.CommentRepository;
 import com.neomango.post.dto.PostCreateRequest;
 import com.neomango.post.dto.PostUpdateRequest;
 import com.neomango.post.entity.Post;
@@ -48,6 +49,9 @@ class PostControllerTest {
 	private JwtTokenProvider jwtTokenProvider;
 
 	@Autowired
+	private CommentRepository commentRepository;
+
+	@Autowired
 	private PostRepository postRepository;
 
 	@Autowired
@@ -71,6 +75,7 @@ class PostControllerTest {
 		userCategoryMembershipRepository.deleteAll();
 		teamMemberRepository.deleteAll();
 		teamRepository.deleteAll();
+		commentRepository.deleteAll();
 		postRepository.deleteAll();
 		userRepository.deleteAll();
 	}
@@ -81,6 +86,7 @@ class PostControllerTest {
 		userCategoryMembershipRepository.deleteAll();
 		teamMemberRepository.deleteAll();
 		teamRepository.deleteAll();
+		commentRepository.deleteAll();
 		postRepository.deleteAll();
 		userRepository.deleteAll();
 	}
