@@ -1,16 +1,21 @@
 package com.neomango.auth.jwt;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -41,6 +46,61 @@ class JwtAuthenticationFilterTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.userId", is(1)))
+			.andExpect(jsonPath("$.data.role", is("USER")))
+			.andExpect(jsonPath("$.data.authorities", contains("ROLE_USER")));
+	}
+
+	@Test
+	void adminAccessTokenCreatesRoleAdminAuthority() throws Exception {
+		String accessToken = jwtTokenProvider.createAccessToken(2L, UserRole.ADMIN);
+
+		mockMvc.perform(get("/api/test/auth")
+				.header("Authorization", "Bearer " + accessToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.userId", is(2)))
+			.andExpect(jsonPath("$.data.role", is("ADMIN")))
+			.andExpect(jsonPath("$.data.authorities", contains("ROLE_ADMIN")));
+	}
+
+	@Test
+	void adminApiRejectsRequestWithoutToken() throws Exception {
+		mockMvc.perform(get("/api/admin/test"))
+			.andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void adminApiRejectsUserRoleToken() throws Exception {
+		String accessToken = jwtTokenProvider.createAccessToken(1L, UserRole.USER);
+
+		mockMvc.perform(get("/api/admin/test")
+				.header("Authorization", "Bearer " + accessToken))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void adminApiAllowsAdminRoleToken() throws Exception {
+		String accessToken = jwtTokenProvider.createAccessToken(2L, UserRole.ADMIN);
+
+		mockMvc.perform(get("/api/admin/test")
+				.header("Authorization", "Bearer " + accessToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.role", is("ADMIN")))
+			.andExpect(jsonPath("$.data.authorities", contains("ROLE_ADMIN")));
+	}
+
+	@Test
+	void signupIgnoresInjectedAdminRole() throws Exception {
+		mockMvc.perform(post("/api/auth/signup")
+				.contentType("application/json")
+				.content("""
+					{
+						"email": "admin-injection@test.com",
+						"password": "password123",
+						"nickname": "normalUser",
+						"role": "ADMIN"
+					}
+					"""))
+			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.role", is("USER")));
 	}
 
@@ -136,14 +196,33 @@ class JwtAuthenticationFilterTest {
 	static class TestAuthController {
 
 		@GetMapping("/api/test/auth")
-		ApiResponse<TestAuthResponse> auth(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-			return ApiResponse.success(new TestAuthResponse(currentUser.userId(), currentUser.role()));
+		ApiResponse<TestAuthResponse> auth(
+			@AuthenticationPrincipal AuthenticatedUser currentUser,
+			Authentication authentication
+		) {
+			return ApiResponse.success(TestAuthResponse.from(currentUser, authentication));
+		}
+
+		@GetMapping("/api/admin/test")
+		ApiResponse<TestAuthResponse> admin(
+			@AuthenticationPrincipal AuthenticatedUser currentUser,
+			Authentication authentication
+		) {
+			return ApiResponse.success(TestAuthResponse.from(currentUser, authentication));
 		}
 	}
 
 	private record TestAuthResponse(
 		Long userId,
-		String role
+		String role,
+		List<String> authorities
 	) {
+
+		private static TestAuthResponse from(AuthenticatedUser currentUser, Authentication authentication) {
+			List<String> authorities = authentication.getAuthorities().stream()
+				.map(GrantedAuthority::getAuthority)
+				.toList();
+			return new TestAuthResponse(currentUser.userId(), currentUser.role(), authorities);
+		}
 	}
 }
