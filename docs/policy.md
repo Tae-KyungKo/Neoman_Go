@@ -291,13 +291,16 @@
 - 공지사항 응답에는 관리자 ID, 이메일, 실제 닉네임 등 내부 식별 정보를 노출하지 않는다.
 
 ### 8.2 관리자 권한
-- 초기 구현에서는 `ROLE_ADMIN` 하나만 사용한다.
+- 초기 관리자 권한은 `ADMIN` 하나만 사용한다.
+- DB와 `UserRole` enum 값은 `USER`, `ADMIN` 형태를 유지한다.
+- Spring Security `GrantedAuthority`는 `ROLE_USER`, `ROLE_ADMIN` 형태로 생성한다.
 - 관리자 권한 세분화는 운영 단계에서 필요성이 생기면 분리한다.
-- 현재는 `ROLE_ADMIN`, `ROLE_MANAGER`, `ROLE_MODERATOR`를 분리하지 않는다.
+- 현재는 `MANAGER`, `MODERATOR`, `ROLE_MANAGER`, `ROLE_MODERATOR`를 만들지 않는다.
+- 일반 회원가입으로는 `ADMIN` 계정을 만들 수 없다.
 
 ### 8.3 관리자 접근 제한
 - 초기 구현에서는 고정 IP 제한을 적용하지 않는다.
-- 관리자 API 접근은 사용자의 ROLE이 `ROLE_ADMIN`인 경우로 제한한다.
+- 관리자 API 접근은 `hasRole("ADMIN")` 기준으로 제한한다.
 - IP 제한은 배포/운영 단계에서 필요하면 추가한다.
 
 ---
