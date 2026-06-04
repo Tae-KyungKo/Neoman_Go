@@ -1,6 +1,7 @@
 package com.neomango.notification.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -92,10 +93,129 @@ class NotificationServiceTest {
 	}
 
 	@Test
+	void createTeamMemberJoinedNotificationSavesNotification() {
+		User receiver = User.create("member@test.com", "encoded-password", "member");
+		when(userRepository.getReferenceById(3L)).thenReturn(receiver);
+
+		notificationService.createTeamMemberJoinedNotification(3L, 2L, "Futsal Team", "joinedMember", 20L);
+
+		assertSavedNotification(
+			receiver,
+			NotificationType.TEAM_MEMBER_JOINED,
+			"새 멤버 가입",
+			"joinedMember님이 Futsal Team 팀에 합류했습니다.",
+			NotificationTargetType.TEAM,
+			20L
+		);
+	}
+
+	@Test
+	void createTeamMemberLeftNotificationSavesNotification() {
+		User receiver = User.create("member@test.com", "encoded-password", "member");
+		when(userRepository.getReferenceById(3L)).thenReturn(receiver);
+
+		notificationService.createTeamMemberLeftNotification(3L, 2L, "Futsal Team", "leftMember", 20L);
+
+		assertSavedNotification(
+			receiver,
+			NotificationType.TEAM_MEMBER_LEFT,
+			"팀원 탈퇴",
+			"leftMember님이 Futsal Team 팀에서 탈퇴했습니다.",
+			NotificationTargetType.TEAM,
+			20L
+		);
+	}
+
+	@Test
+	void createTeamMemberKickedNotificationSavesNotification() {
+		User receiver = User.create("member@test.com", "encoded-password", "member");
+		when(userRepository.getReferenceById(3L)).thenReturn(receiver);
+
+		notificationService.createTeamMemberKickedNotification(3L, 1L, "Futsal Team", 20L);
+
+		assertSavedNotification(
+			receiver,
+			NotificationType.TEAM_MEMBER_KICKED,
+			"팀원 강퇴",
+			"Futsal Team 팀에서 강퇴되었습니다.",
+			NotificationTargetType.TEAM,
+			20L
+		);
+	}
+
+	@Test
+	void createTeamOwnerDelegatedNotificationSavesNotification() {
+		User receiver = User.create("new-owner@test.com", "encoded-password", "newOwner");
+		when(userRepository.getReferenceById(3L)).thenReturn(receiver);
+
+		notificationService.createTeamOwnerDelegatedNotification(3L, 1L, "Futsal Team", 20L);
+
+		assertSavedNotification(
+			receiver,
+			NotificationType.TEAM_OWNER_DELEGATED,
+			"주장 권한 위임",
+			"Futsal Team 팀의 주장 권한을 위임받았습니다.",
+			NotificationTargetType.TEAM,
+			20L
+		);
+	}
+
+	@Test
 	void createNotificationSkipsSelfAction() {
 		notificationService.createTeamApplicationApprovedNotification(1L, 1L, "Futsal Team", 10L);
 
 		verify(userRepository, never()).getReferenceById(1L);
-		verify(notificationRepository, never()).save(org.mockito.ArgumentMatchers.any(Notification.class));
+		verify(notificationRepository, never()).save(any(Notification.class));
+	}
+
+	@Test
+	void createTeamMemberJoinedNotificationSkipsSelfAction() {
+		notificationService.createTeamMemberJoinedNotification(1L, 1L, "Futsal Team", "joinedMember", 20L);
+
+		verify(userRepository, never()).getReferenceById(1L);
+		verify(notificationRepository, never()).save(any(Notification.class));
+	}
+
+	@Test
+	void createTeamMemberLeftNotificationSkipsSelfAction() {
+		notificationService.createTeamMemberLeftNotification(1L, 1L, "Futsal Team", "leftMember", 20L);
+
+		verify(userRepository, never()).getReferenceById(1L);
+		verify(notificationRepository, never()).save(any(Notification.class));
+	}
+
+	@Test
+	void createTeamMemberKickedNotificationSkipsSelfAction() {
+		notificationService.createTeamMemberKickedNotification(1L, 1L, "Futsal Team", 20L);
+
+		verify(userRepository, never()).getReferenceById(1L);
+		verify(notificationRepository, never()).save(any(Notification.class));
+	}
+
+	@Test
+	void createTeamOwnerDelegatedNotificationSkipsSelfAction() {
+		notificationService.createTeamOwnerDelegatedNotification(1L, 1L, "Futsal Team", 20L);
+
+		verify(userRepository, never()).getReferenceById(1L);
+		verify(notificationRepository, never()).save(any(Notification.class));
+	}
+
+	private void assertSavedNotification(
+		User receiver,
+		NotificationType type,
+		String title,
+		String message,
+		NotificationTargetType targetType,
+		Long targetId
+	) {
+		ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+		verify(notificationRepository).save(captor.capture());
+		Notification notification = captor.getValue();
+		assertThat(notification.getReceiver()).isSameAs(receiver);
+		assertThat(notification.getType()).isEqualTo(type);
+		assertThat(notification.getTitle()).isEqualTo(title);
+		assertThat(notification.getMessage()).isEqualTo(message);
+		assertThat(notification.getTargetType()).isEqualTo(targetType);
+		assertThat(notification.getTargetId()).isEqualTo(targetId);
 	}
 }

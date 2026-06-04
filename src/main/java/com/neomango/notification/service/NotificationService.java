@@ -84,6 +84,80 @@ public class NotificationService {
 		);
 	}
 
+	@Transactional
+	public void createTeamMemberJoinedNotification(
+		Long receiverId,
+		Long actorId,
+		String teamName,
+		String joinedMemberNickname,
+		Long teamId
+	) {
+		createNotification(
+			receiverId,
+			actorId,
+			NotificationType.TEAM_MEMBER_JOINED,
+			"새 멤버 가입",
+			joinedMemberNickname + "님이 " + teamName + " 팀에 합류했습니다.",
+			NotificationTargetType.TEAM,
+			teamId
+		);
+	}
+
+	@Transactional
+	public void createTeamMemberLeftNotification(
+		Long receiverId,
+		Long actorId,
+		String teamName,
+		String leftMemberNickname,
+		Long teamId
+	) {
+		createNotification(
+			receiverId,
+			actorId,
+			NotificationType.TEAM_MEMBER_LEFT,
+			"팀원 탈퇴",
+			leftMemberNickname + "님이 " + teamName + " 팀에서 탈퇴했습니다.",
+			NotificationTargetType.TEAM,
+			teamId
+		);
+	}
+
+	@Transactional
+	public void createTeamMemberKickedNotification(
+		Long receiverId,
+		Long actorId,
+		String teamName,
+		Long teamId
+	) {
+		createNotification(
+			receiverId,
+			actorId,
+			NotificationType.TEAM_MEMBER_KICKED,
+			"팀원 강퇴",
+			teamName + " 팀에서 강퇴되었습니다.",
+			NotificationTargetType.TEAM,
+			teamId
+		);
+	}
+
+	@Transactional
+	public void createTeamOwnerDelegatedNotification(
+		Long receiverId,
+		Long actorId,
+		String teamName,
+		Long teamId
+	) {
+		createNotification(
+			receiverId,
+			actorId,
+			NotificationType.TEAM_OWNER_DELEGATED,
+			"주장 권한 위임",
+			teamName + " 팀의 주장 권한을 위임받았습니다.",
+			NotificationTargetType.TEAM,
+			teamId
+		);
+	}
+
 	public Page<NotificationResponse> getMyNotifications(Long userId, Pageable pageable) {
 		validateAuthenticated(userId);
 
