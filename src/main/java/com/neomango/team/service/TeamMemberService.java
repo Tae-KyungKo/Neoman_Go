@@ -93,6 +93,12 @@ public class TeamMemberService {
 
 		target.deactivate();
 		userCategoryMembershipRepository.deleteByUserIdAndCategory(target.getUser().getId(), team.getCategory());
+		notificationService.createTeamMemberKickedNotification(
+			target.getUser().getId(),
+			requesterUserId,
+			team.getName(),
+			team.getId()
+		);
 	}
 
 	@Transactional
@@ -120,6 +126,12 @@ public class TeamMemberService {
 		if (teamMemberRepository.countActiveOwnersByTeamId(teamId) != 1) {
 			throw new TeamOwnerInvariantViolationException();
 		}
+		notificationService.createTeamOwnerDelegatedNotification(
+			target.getUser().getId(),
+			requesterUserId,
+			target.getTeam().getName(),
+			teamId
+		);
 	}
 
 	private void leaveOwnerTeam(Team team, TeamMember ownerMember) {

@@ -584,9 +584,13 @@ class TeamControllerTest {
 		assertThat(kickedMember.getStatus()).isEqualTo(TeamMemberStatus.INACTIVE);
 		assertThat(userCategoryMembershipRepository.existsByUserIdAndCategory(target.getId(), "GAME")).isFalse();
 		assertThat(userCategoryMembershipRepository.existsByUserIdAndCategory(target.getId(), "SPORTS")).isTrue();
-		assertThat(notificationRepository.findAll())
-			.extracting(Notification::getType)
-			.doesNotContain(NotificationType.TEAM_MEMBER_LEFT);
+		Notification notification = notificationRepository.findAll().get(0);
+		assertThat(notification.getReceiver().getId()).isEqualTo(target.getId());
+		assertThat(notification.getType()).isEqualTo(NotificationType.TEAM_MEMBER_KICKED);
+		assertThat(notification.getTitle()).isEqualTo("팀원 강퇴");
+		assertThat(notification.getMessage()).isEqualTo("Game Team 팀에서 강퇴되었습니다.");
+		assertThat(notification.getTargetType()).isEqualTo(NotificationTargetType.TEAM);
+		assertThat(notification.getTargetId()).isEqualTo(savedTeam.getId());
 
 		mockMvc.perform(get("/api/teams/{teamId}/members", savedTeam.getId())
 				.header("Authorization", "Bearer " + ownerToken))
@@ -600,6 +604,42 @@ class TeamControllerTest {
 				.content(objectMapper.writeValueAsString(new TeamApplicationCreateRequest("다시 가입하고 싶습니다."))))
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.data.status").value(TeamApplicationStatus.PENDING.name()));
+	}
+
+	@Test
+	void kickMemberCreatesNotificationOnlyForKickedMember() throws Exception {
+		User owner = userRepository.save(User.create("owner-kick-notification@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create("target-kick-notification@test.com", "encoded-password", "target"));
+		User remainingMember = userRepository.save(User.create("remaining-kick-notification@test.com", "encoded-password", "remaining"));
+		Team team = Team.create("Game Team", null, "GAME", owner);
+		team.addMember(TeamMember.createMember(team, target));
+		team.addMember(TeamMember.createMember(team, remainingMember));
+		Team savedTeam = teamRepository.saveAndFlush(team);
+		userCategoryMembershipRepository.saveAndFlush(UserCategoryMembership.create(target, "GAME", savedTeam));
+		TeamMember targetMember = savedTeam.getMembers().stream()
+			.filter(teamMember -> teamMember.getUser().getId().equals(target.getId()))
+			.findFirst()
+			.orElseThrow();
+		String ownerToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
+
+		mockMvc.perform(post("/api/teams/{teamId}/members/{teamMemberId}/kick", savedTeam.getId(), targetMember.getId())
+				.header("Authorization", "Bearer " + ownerToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.success").value(true));
+
+		var notifications = notificationRepository.findAll();
+		assertThat(notifications).hasSize(1);
+		Notification notification = notifications.get(0);
+		assertThat(notification.getReceiver().getId()).isEqualTo(target.getId());
+		assertThat(notification.getReceiver().getId()).isNotEqualTo(owner.getId());
+		assertThat(notification.getReceiver().getId()).isNotEqualTo(remainingMember.getId());
+		assertThat(notification.getType()).isEqualTo(NotificationType.TEAM_MEMBER_KICKED);
+		assertThat(notification.getTargetType()).isEqualTo(NotificationTargetType.TEAM);
+		assertThat(notification.getTargetId()).isEqualTo(savedTeam.getId());
+		assertThat(notification.getMessage()).isEqualTo("Game Team 팀에서 강퇴되었습니다.");
+		assertThat(notifications)
+			.extracting(Notification::getType)
+			.doesNotContain(NotificationType.TEAM_MEMBER_LEFT);
 	}
 
 	@Test
@@ -621,6 +661,7 @@ class TeamControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.code").value("T002"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -634,6 +675,7 @@ class TeamControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("T009"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -655,6 +697,7 @@ class TeamControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("T008"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -779,6 +822,13 @@ class TeamControllerTest {
 		assertThat(teamMemberRepository.findById(targetMember.getId()).orElseThrow().getRole())
 			.isEqualTo(com.neomango.team.entity.TeamMemberRole.OWNER);
 		assertThat(teamMemberRepository.countActiveOwnersByTeamId(savedTeam.getId())).isEqualTo(1);
+		Notification notification = notificationRepository.findAll().get(0);
+		assertThat(notification.getReceiver().getId()).isEqualTo(target.getId());
+		assertThat(notification.getType()).isEqualTo(NotificationType.TEAM_OWNER_DELEGATED);
+		assertThat(notification.getTitle()).isEqualTo("주장 권한 위임");
+		assertThat(notification.getMessage()).isEqualTo("Game Team 팀의 주장 권한을 위임받았습니다.");
+		assertThat(notification.getTargetType()).isEqualTo(NotificationTargetType.TEAM);
+		assertThat(notification.getTargetId()).isEqualTo(savedTeam.getId());
 
 		String targetToken = jwtTokenProvider.createAccessToken(target.getId(), UserRole.USER);
 		mockMvc.perform(get("/api/teams/{teamId}/members", savedTeam.getId())
@@ -788,6 +838,40 @@ class TeamControllerTest {
 			.andExpect(jsonPath("$.data[0].role").value("MEMBER"))
 			.andExpect(jsonPath("$.data[1].userId").value(target.getId()))
 			.andExpect(jsonPath("$.data[1].role").value("OWNER"));
+	}
+
+	@Test
+	void delegateOwnerCreatesNotificationOnlyForNewOwner() throws Exception {
+		User owner = userRepository.save(User.create("owner-delegate-notification@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create("target-delegate-notification@test.com", "encoded-password", "target"));
+		User member = userRepository.save(User.create("member-delegate-notification@test.com", "encoded-password", "member"));
+		Team team = Team.create("Game Team", null, "GAME", owner);
+		team.addMember(TeamMember.createMember(team, target));
+		team.addMember(TeamMember.createMember(team, member));
+		Team savedTeam = teamRepository.saveAndFlush(team);
+		TeamMember targetMember = savedTeam.getMembers().stream()
+			.filter(teamMember -> teamMember.getUser().getId().equals(target.getId()))
+			.findFirst()
+			.orElseThrow();
+		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
+
+		mockMvc.perform(post("/api/teams/{teamId}/owner/delegate", savedTeam.getId())
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new OwnerDelegationRequest(targetMember.getId()))))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.success").value(true));
+
+		var notifications = notificationRepository.findAll();
+		assertThat(notifications).hasSize(1);
+		Notification notification = notifications.get(0);
+		assertThat(notification.getReceiver().getId()).isEqualTo(target.getId());
+		assertThat(notification.getReceiver().getId()).isNotEqualTo(owner.getId());
+		assertThat(notification.getReceiver().getId()).isNotEqualTo(member.getId());
+		assertThat(notification.getType()).isEqualTo(NotificationType.TEAM_OWNER_DELEGATED);
+		assertThat(notification.getTargetType()).isEqualTo(NotificationTargetType.TEAM);
+		assertThat(notification.getTargetId()).isEqualTo(savedTeam.getId());
+		assertThat(notification.getMessage()).isEqualTo("Game Team 팀의 주장 권한을 위임받았습니다.");
 	}
 
 	@Test
@@ -811,6 +895,7 @@ class TeamControllerTest {
 				.content(objectMapper.writeValueAsString(new OwnerDelegationRequest(targetMember.getId()))))
 			.andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.code").value("T002"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -826,6 +911,7 @@ class TeamControllerTest {
 				.content(objectMapper.writeValueAsString(new OwnerDelegationRequest(ownerMember.getId()))))
 			.andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("T011"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -849,6 +935,7 @@ class TeamControllerTest {
 				.content(objectMapper.writeValueAsString(new OwnerDelegationRequest(otherTeamMember.getId()))))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("T008"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -895,6 +982,7 @@ class TeamControllerTest {
 				.content(objectMapper.writeValueAsString(new OwnerDelegationRequest(inactiveMember.getId()))))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("T008"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -957,6 +1045,7 @@ class TeamControllerTest {
 			.andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("T013"));
 		assertThat(teamMemberRepository.countActiveOwnersByTeamId(savedTeam.getId())).isEqualTo(2);
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test

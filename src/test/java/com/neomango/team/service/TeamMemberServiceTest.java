@@ -19,6 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.neomango.notification.service.NotificationService;
 import com.neomango.team.entity.Team;
 import com.neomango.team.entity.TeamMember;
+import com.neomango.team.entity.TeamMemberRole;
 import com.neomango.team.entity.TeamMemberStatus;
 import com.neomango.team.entity.TeamStatus;
 import com.neomango.team.exception.CannotLeaveOwnerWithoutDelegationException;
@@ -141,7 +142,7 @@ class TeamMemberServiceTest {
 	}
 
 	@Test
-	void kickMemberDoesNotCreateMemberLeftNotification() {
+	void kickMemberCreatesMemberKickedNotificationOnlyForTarget() {
 		User owner = user(OWNER_ID, "owner@test.com", "owner");
 		User target = user(MEMBER_ID, "target@test.com", "target");
 		Team team = team(owner);
@@ -159,12 +160,48 @@ class TeamMemberServiceTest {
 		teamMemberService.kickMember(TEAM_ID, 20L, OWNER_ID);
 
 		assertThat(targetMember.getStatus()).isEqualTo(TeamMemberStatus.INACTIVE);
+		verify(userCategoryMembershipRepository).deleteByUserIdAndCategory(MEMBER_ID, "GAME");
+		verify(notificationService).createTeamMemberKickedNotification(
+			MEMBER_ID,
+			OWNER_ID,
+			"Game Team",
+			TEAM_ID
+		);
 		verify(notificationService, never()).createTeamMemberLeftNotification(
 			org.mockito.ArgumentMatchers.any(),
 			org.mockito.ArgumentMatchers.any(),
 			org.mockito.ArgumentMatchers.any(),
 			org.mockito.ArgumentMatchers.any(),
 			org.mockito.ArgumentMatchers.any()
+		);
+	}
+
+	@Test
+	void delegateOwnerCreatesOwnerDelegatedNotificationOnlyForNewOwner() {
+		User owner = user(OWNER_ID, "owner@test.com", "owner");
+		User target = user(MEMBER_ID, "target@test.com", "target");
+		Team team = team(owner);
+		TeamMember ownerMember = team.getMembers().get(0);
+		ReflectionTestUtils.setField(ownerMember, "id", 10L);
+		TeamMember targetMember = TeamMember.createMember(team, target);
+		ReflectionTestUtils.setField(targetMember, "id", 20L);
+		team.addMember(targetMember);
+		when(teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(TEAM_ID, TeamStatus.DELETED))
+			.thenReturn(Optional.of(team));
+		when(teamMemberRepository.findActiveMemberByTeamIdAndUserId(TEAM_ID, OWNER_ID))
+			.thenReturn(Optional.of(ownerMember));
+		when(teamMemberRepository.findActiveMemberById(20L)).thenReturn(Optional.of(targetMember));
+		when(teamMemberRepository.countActiveOwnersByTeamId(TEAM_ID)).thenReturn(1L);
+
+		teamMemberService.delegateOwner(TEAM_ID, OWNER_ID, 20L);
+
+		assertThat(ownerMember.getRole()).isEqualTo(TeamMemberRole.MEMBER);
+		assertThat(targetMember.getRole()).isEqualTo(TeamMemberRole.OWNER);
+		verify(notificationService).createTeamOwnerDelegatedNotification(
+			MEMBER_ID,
+			OWNER_ID,
+			"Game Team",
+			TEAM_ID
 		);
 	}
 
