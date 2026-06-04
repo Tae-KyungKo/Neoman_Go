@@ -16,6 +16,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.neomango.auth.jwt.JwtTokenProvider;
+import com.neomango.notification.entity.Notification;
+import com.neomango.notification.entity.NotificationTargetType;
+import com.neomango.notification.entity.NotificationType;
+import com.neomango.notification.repository.NotificationRepository;
 import com.neomango.team.entity.Team;
 import com.neomango.team.entity.TeamApplication;
 import com.neomango.team.entity.TeamApplicationStatus;
@@ -55,6 +59,9 @@ class TeamApplicationControllerTest {
 	@Autowired
 	private TeamApplicationRepository teamApplicationRepository;
 
+	@Autowired
+	private NotificationRepository notificationRepository;
+
 	@BeforeEach
 	void setUp() {
 		cleanUp();
@@ -66,6 +73,7 @@ class TeamApplicationControllerTest {
 	}
 
 	private void cleanUp() {
+		notificationRepository.deleteAll();
 		teamApplicationRepository.deleteAll();
 		userCategoryMembershipRepository.deleteAll();
 		teamMemberRepository.deleteAll();
@@ -127,6 +135,13 @@ class TeamApplicationControllerTest {
 		TeamApplication approvedApplication = teamApplicationRepository.findById(application.getId()).orElseThrow();
 		assertThat(approvedApplication.getStatus()).isEqualTo(TeamApplicationStatus.APPROVED);
 		assertThat(teamMemberRepository.existsByTeamIdAndUserId(team.getId(), applicant.getId())).isTrue();
+		Notification notification = notificationRepository.findAll().get(0);
+		assertThat(notification.getReceiver().getId()).isEqualTo(applicant.getId());
+		assertThat(notification.getType()).isEqualTo(NotificationType.TEAM_APPLICATION_APPROVED);
+		assertThat(notification.getTitle()).isEqualTo("가입 신청 승인");
+		assertThat(notification.getMessage()).isEqualTo("Futsal Team 팀 가입 신청이 승인되었습니다.");
+		assertThat(notification.getTargetType()).isEqualTo(NotificationTargetType.TEAM_APPLICATION);
+		assertThat(notification.getTargetId()).isEqualTo(application.getId());
 	}
 
 	@Test
@@ -149,6 +164,13 @@ class TeamApplicationControllerTest {
 		TeamApplication rejectedApplication = teamApplicationRepository.findById(application.getId()).orElseThrow();
 		assertThat(rejectedApplication.getStatus()).isEqualTo(TeamApplicationStatus.REJECTED);
 		assertThat(teamMemberRepository.existsByTeamIdAndUserId(team.getId(), applicant.getId())).isFalse();
+		Notification notification = notificationRepository.findAll().get(0);
+		assertThat(notification.getReceiver().getId()).isEqualTo(applicant.getId());
+		assertThat(notification.getType()).isEqualTo(NotificationType.TEAM_APPLICATION_REJECTED);
+		assertThat(notification.getTitle()).isEqualTo("가입 신청 거절");
+		assertThat(notification.getMessage()).isEqualTo("Futsal Team 팀 가입 신청이 거절되었습니다.");
+		assertThat(notification.getTargetType()).isEqualTo(NotificationTargetType.TEAM_APPLICATION);
+		assertThat(notification.getTargetId()).isEqualTo(application.getId());
 	}
 
 	@Test
@@ -166,6 +188,7 @@ class TeamApplicationControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.code").value("T002"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -183,6 +206,7 @@ class TeamApplicationControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.code").value("T002"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -199,6 +223,7 @@ class TeamApplicationControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("TA003"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -346,5 +371,6 @@ class TeamApplicationControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("TA003"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 }

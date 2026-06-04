@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.neomango.global.exception.BusinessException;
 import com.neomango.global.exception.ErrorCode;
+import com.neomango.notification.service.NotificationService;
 import com.neomango.team.dto.TeamApplicationCreateRequest;
 import com.neomango.team.dto.TeamApplicationOwnerResponse;
 import com.neomango.team.dto.TeamApplicationResponse;
@@ -41,6 +42,7 @@ public class TeamApplicationService {
 	private final TeamMemberRepository teamMemberRepository;
 	private final UserCategoryMembershipRepository userCategoryMembershipRepository;
 	private final UserRepository userRepository;
+	private final NotificationService notificationService;
 
 	public TeamApplicationResponse createApplication(
 		Long teamId,
@@ -61,9 +63,20 @@ public class TeamApplicationService {
 		validateApplicantIsNotSameCategoryMember(team, applicant);
 		validateNoPendingApplication(team, applicant);
 
-		TeamApplication teamApplication = TeamApplication.create(team, applicant, request.message());
+		TeamApplication teamApplication = teamApplicationRepository.save(
+			TeamApplication.create(team, applicant, request.message())
+		);
+		TeamMember ownerMember = teamMemberRepository.findActiveOwnerByTeamId(team.getId())
+			.orElseThrow(() -> new BusinessException(ErrorCode.TEAM_OWNER_NOT_FOUND));
+		notificationService.createTeamApplicationCreatedNotification(
+			ownerMember.getUser().getId(),
+			applicant.getId(),
+			team.getName(),
+			applicant.getNickname(),
+			teamApplication.getId()
+		);
 
-		return TeamApplicationResponse.from(teamApplicationRepository.save(teamApplication));
+		return TeamApplicationResponse.from(teamApplication);
 	}
 
 	public TeamApplicationResponse cancelApplication(Long applicationId, Long requesterId) {
@@ -100,6 +113,12 @@ public class TeamApplicationService {
 
 		application.approve();
 		cancelOtherPendingApplicationsInSameCategory(application);
+		notificationService.createTeamApplicationApprovedNotification(
+			applicant.getId(),
+			loginUserId,
+			team.getName(),
+			application.getId()
+		);
 
 		return TeamApplicationResponse.from(application);
 	}
@@ -116,6 +135,12 @@ public class TeamApplicationService {
 		validateApplicationProcessOwner(application.getTeam(), loginUserId);
 
 		application.reject();
+		notificationService.createTeamApplicationRejectedNotification(
+			application.getApplicant().getId(),
+			loginUserId,
+			application.getTeam().getName(),
+			application.getId()
+		);
 
 		return TeamApplicationResponse.from(application);
 	}

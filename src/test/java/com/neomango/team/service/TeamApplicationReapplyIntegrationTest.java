@@ -12,6 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import com.neomango.global.exception.BusinessException;
 import com.neomango.global.exception.ErrorCode;
+import com.neomango.notification.repository.NotificationRepository;
 import com.neomango.team.dto.TeamApplicationCreateRequest;
 import com.neomango.team.dto.TeamApplicationResponse;
 import com.neomango.team.dto.TeamMemberListResponse;
@@ -55,6 +56,9 @@ class TeamApplicationReapplyIntegrationTest {
 	@Autowired
 	private UserRepository userRepository;
 
+	@Autowired
+	private NotificationRepository notificationRepository;
+
 	@BeforeEach
 	void setUp() {
 		cleanUp();
@@ -66,6 +70,7 @@ class TeamApplicationReapplyIntegrationTest {
 	}
 
 	private void cleanUp() {
+		notificationRepository.deleteAll();
 		teamApplicationRepository.deleteAll();
 		userCategoryMembershipRepository.deleteAll();
 		teamMemberRepository.deleteAll();

@@ -22,6 +22,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.neomango.global.exception.BusinessException;
 import com.neomango.global.exception.ErrorCode;
+import com.neomango.notification.service.NotificationService;
 import com.neomango.team.dto.TeamApplicationCreateRequest;
 import com.neomango.team.dto.TeamApplicationResponse;
 import com.neomango.team.entity.Team;
@@ -61,6 +62,9 @@ class TeamApplicationServiceTest {
 	@Mock
 	private UserRepository userRepository;
 
+	@Mock
+	private NotificationService notificationService;
+
 	@InjectMocks
 	private TeamApplicationService teamApplicationService;
 
@@ -85,6 +89,8 @@ class TeamApplicationServiceTest {
 			ReflectionTestUtils.setField(application, "id", 100L);
 			return application;
 		});
+		when(teamMemberRepository.findActiveOwnerByTeamId(TEAM_ID))
+			.thenReturn(Optional.of(team.getMembers().get(0)));
 
 		TeamApplicationResponse response = teamApplicationService.createApplication(
 			TEAM_ID,
@@ -101,6 +107,13 @@ class TeamApplicationServiceTest {
 		ArgumentCaptor<TeamApplication> captor = ArgumentCaptor.forClass(TeamApplication.class);
 		verify(teamApplicationRepository).save(captor.capture());
 		assertThat(captor.getValue().getStatus()).isEqualTo(TeamApplicationStatus.PENDING);
+		verify(notificationService).createTeamApplicationCreatedNotification(
+			team.getMembers().get(0).getUser().getId(),
+			applicant.getId(),
+			team.getName(),
+			applicant.getNickname(),
+			captor.getValue().getId()
+		);
 	}
 
 	@Test
@@ -365,6 +378,12 @@ class TeamApplicationServiceTest {
 		assertThat(captor.getValue().getTeam()).isSameAs(team);
 		assertThat(captor.getValue().getUser()).isSameAs(applicant);
 		assertThat(captor.getValue().getRole()).isEqualTo(TeamMemberRole.MEMBER);
+		verify(notificationService).createTeamApplicationApprovedNotification(
+			applicant.getId(),
+			owner.getId(),
+			team.getName(),
+			application.getId()
+		);
 	}
 
 	@Test
@@ -382,6 +401,12 @@ class TeamApplicationServiceTest {
 		assertThat(response.status()).isEqualTo(TeamApplicationStatus.REJECTED);
 		assertThat(application.getStatus()).isEqualTo(TeamApplicationStatus.REJECTED);
 		verify(teamMemberRepository, never()).save(any(TeamMember.class));
+		verify(notificationService).createTeamApplicationRejectedNotification(
+			applicant.getId(),
+			owner.getId(),
+			team.getName(),
+			application.getId()
+		);
 	}
 
 	@Test
@@ -458,6 +483,8 @@ class TeamApplicationServiceTest {
 			ReflectionTestUtils.setField(application, "id", 101L);
 			return application;
 		});
+		when(teamMemberRepository.findActiveOwnerByTeamId(TEAM_ID))
+			.thenReturn(Optional.of(team.getMembers().get(0)));
 
 		TeamApplicationResponse response = teamApplicationService.createApplication(
 			TEAM_ID,

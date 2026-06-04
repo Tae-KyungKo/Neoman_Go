@@ -22,6 +22,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neomango.auth.jwt.JwtTokenProvider;
+import com.neomango.notification.entity.Notification;
+import com.neomango.notification.entity.NotificationTargetType;
+import com.neomango.notification.entity.NotificationType;
+import com.neomango.notification.repository.NotificationRepository;
 import com.neomango.team.dto.OwnerDelegationRequest;
 import com.neomango.team.dto.TeamApplicationCreateRequest;
 import com.neomango.team.dto.TeamCreateRequest;
@@ -69,8 +73,12 @@ class TeamControllerTest {
 	@Autowired
 	private UserCategoryMembershipRepository userCategoryMembershipRepository;
 
+	@Autowired
+	private NotificationRepository notificationRepository;
+
 	@BeforeEach
 	void setUp() {
+		notificationRepository.deleteAll();
 		teamApplicationRepository.deleteAll();
 		userCategoryMembershipRepository.deleteAll();
 		teamMemberRepository.deleteAll();
@@ -1032,6 +1040,15 @@ class TeamControllerTest {
 			.andExpect(jsonPath("$.data.teamName").value("Futsal Team"))
 			.andExpect(jsonPath("$.data.status").value(TeamApplicationStatus.PENDING.name()))
 			.andExpect(jsonPath("$.data.message").value("가입하고 싶습니다."));
+
+		TeamApplication application = teamApplicationRepository.findAll().get(0);
+		Notification notification = notificationRepository.findAll().get(0);
+		assertThat(notification.getReceiver().getId()).isEqualTo(owner.getId());
+		assertThat(notification.getType()).isEqualTo(NotificationType.TEAM_APPLICATION_CREATED);
+		assertThat(notification.getTitle()).isEqualTo("팀 가입 신청");
+		assertThat(notification.getMessage()).isEqualTo("applicant님이 Futsal Team 팀에 가입 신청했습니다.");
+		assertThat(notification.getTargetType()).isEqualTo(NotificationTargetType.TEAM_APPLICATION);
+		assertThat(notification.getTargetId()).isEqualTo(application.getId());
 	}
 
 	@Test
@@ -1044,6 +1061,7 @@ class TeamControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isUnauthorized());
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
