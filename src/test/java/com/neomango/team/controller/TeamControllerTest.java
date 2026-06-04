@@ -338,6 +338,13 @@ class TeamControllerTest {
 		assertThat(leftMember.getStatus()).isEqualTo(TeamMemberStatus.INACTIVE);
 		assertThat(userCategoryMembershipRepository.existsByUserIdAndCategory(member.getId(), "GAME")).isFalse();
 		assertThat(userCategoryMembershipRepository.existsByUserIdAndCategory(member.getId(), "SPORTS")).isTrue();
+		Notification notification = notificationRepository.findAll().get(0);
+		assertThat(notification.getReceiver().getId()).isEqualTo(owner.getId());
+		assertThat(notification.getType()).isEqualTo(NotificationType.TEAM_MEMBER_LEFT);
+		assertThat(notification.getTitle()).isEqualTo("팀원 탈퇴");
+		assertThat(notification.getMessage()).isEqualTo("member님이 Game Team 팀에서 탈퇴했습니다.");
+		assertThat(notification.getTargetType()).isEqualTo(NotificationTargetType.TEAM);
+		assertThat(notification.getTargetId()).isEqualTo(savedTeam.getId());
 
 		mockMvc.perform(get("/api/teams/{teamId}/members", savedTeam.getId())
 				.header("Authorization", "Bearer " + ownerToken))
@@ -347,6 +354,49 @@ class TeamControllerTest {
 
 		userCategoryMembershipRepository.saveAndFlush(UserCategoryMembership.create(member, "GAME", savedTeam));
 		assertThat(userCategoryMembershipRepository.existsByUserIdAndCategory(member.getId(), "GAME")).isTrue();
+	}
+
+	@Test
+	void leaveTeamCreatesNotificationsForRemainingActiveOwnerAndMembersOnly() throws Exception {
+		User owner = userRepository.save(User.create("owner-left-notification@test.com", "encoded-password", "owner"));
+		User leavingMember = userRepository.save(User.create("leaving-left-notification@test.com", "encoded-password", "leaving"));
+		User remainingMember = userRepository.save(User.create("remaining-left-notification@test.com", "encoded-password", "remaining"));
+		User inactiveUser = userRepository.save(User.create("inactive-left-notification@test.com", "encoded-password", "inactive"));
+		Team team = Team.create("Game Team", null, "GAME", owner);
+		team.addMember(TeamMember.createMember(team, leavingMember));
+		team.addMember(TeamMember.createMember(team, remainingMember));
+		TeamMember inactiveMember = TeamMember.createMember(team, inactiveUser);
+		inactiveMember.deactivate();
+		team.addMember(inactiveMember);
+		Team savedTeam = teamRepository.saveAndFlush(team);
+		userCategoryMembershipRepository.saveAndFlush(UserCategoryMembership.create(leavingMember, "GAME", savedTeam));
+		String accessToken = jwtTokenProvider.createAccessToken(leavingMember.getId(), UserRole.USER);
+
+		mockMvc.perform(post("/api/teams/{teamId}/members/me/leave", savedTeam.getId())
+				.header("Authorization", "Bearer " + accessToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.success").value(true));
+
+		var notifications = notificationRepository.findAll();
+		assertThat(notifications).hasSize(2);
+		assertThat(notifications)
+			.extracting(notification -> notification.getReceiver().getId())
+			.containsExactlyInAnyOrder(owner.getId(), remainingMember.getId());
+		assertThat(notifications)
+			.extracting(Notification::getType)
+			.containsOnly(NotificationType.TEAM_MEMBER_LEFT);
+		assertThat(notifications)
+			.extracting(Notification::getTargetType)
+			.containsOnly(NotificationTargetType.TEAM);
+		assertThat(notifications)
+			.extracting(Notification::getTargetId)
+			.containsOnly(savedTeam.getId());
+		assertThat(notifications)
+			.extracting(Notification::getMessage)
+			.containsOnly("leaving님이 Game Team 팀에서 탈퇴했습니다.");
+		assertThat(notifications)
+			.extracting(notification -> notification.getReceiver().getId())
+			.doesNotContain(leavingMember.getId(), inactiveUser.getId());
 	}
 
 	@Test
@@ -369,6 +419,7 @@ class TeamControllerTest {
 			.orElseThrow();
 		assertThat(teamMemberRepository.findById(ownerMember.getId()).orElseThrow().getStatus())
 			.isEqualTo(TeamMemberStatus.ACTIVE);
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -443,6 +494,7 @@ class TeamControllerTest {
 			.isEqualTo(TeamApplicationStatus.CANCELED);
 		assertThat(teamApplicationRepository.findById(rejectedApplication.getId()).orElseThrow().getStatus())
 			.isEqualTo(TeamApplicationStatus.REJECTED);
+		assertThat(notificationRepository.count()).isZero();
 
 		mockMvc.perform(get("/api/teams/{teamId}/members", team.getId())
 				.header("Authorization", "Bearer " + accessToken))
@@ -465,6 +517,7 @@ class TeamControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("T008"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -531,6 +584,9 @@ class TeamControllerTest {
 		assertThat(kickedMember.getStatus()).isEqualTo(TeamMemberStatus.INACTIVE);
 		assertThat(userCategoryMembershipRepository.existsByUserIdAndCategory(target.getId(), "GAME")).isFalse();
 		assertThat(userCategoryMembershipRepository.existsByUserIdAndCategory(target.getId(), "SPORTS")).isTrue();
+		assertThat(notificationRepository.findAll())
+			.extracting(Notification::getType)
+			.doesNotContain(NotificationType.TEAM_MEMBER_LEFT);
 
 		mockMvc.perform(get("/api/teams/{teamId}/members", savedTeam.getId())
 				.header("Authorization", "Bearer " + ownerToken))
