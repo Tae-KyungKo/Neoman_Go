@@ -161,6 +161,31 @@ class NotificationServiceTest {
 	}
 
 	@Test
+	void createPostCommentCreatedNotificationSavesNotification() {
+		User receiver = User.create("post-author@test.com", "encoded-password", "postAuthor");
+		when(userRepository.getReferenceById(4L)).thenReturn(receiver);
+
+		notificationService.createPostCommentCreatedNotification(4L, 5L, "Post Title", "commentAuthor", 30L);
+
+		assertSavedNotification(
+			receiver,
+			NotificationType.POST_COMMENT_CREATED,
+			"새 댓글",
+			"commentAuthor님이 \"Post Title\" 게시글에 댓글을 작성했습니다.",
+			NotificationTargetType.POST,
+			30L
+		);
+	}
+
+	@Test
+	void createPostCommentCreatedNotificationSkipsSelfAction() {
+		notificationService.createPostCommentCreatedNotification(1L, 1L, "Post Title", "author", 30L);
+
+		verify(userRepository, never()).getReferenceById(1L);
+		verify(notificationRepository, never()).save(any(Notification.class));
+	}
+
+	@Test
 	void createNotificationSkipsSelfAction() {
 		notificationService.createTeamApplicationApprovedNotification(1L, 1L, "Futsal Team", 10L);
 

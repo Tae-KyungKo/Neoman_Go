@@ -158,6 +158,25 @@ public class NotificationService {
 		);
 	}
 
+	@Transactional
+	public void createPostCommentCreatedNotification(
+		Long receiverId,
+		Long actorId,
+		String postTitle,
+		String commentAuthorNickname,
+		Long postId
+	) {
+		createNotification(
+			receiverId,
+			actorId,
+			NotificationType.POST_COMMENT_CREATED,
+			"새 댓글",
+			commentAuthorNickname + "님이 \"" + postTitle + "\" 게시글에 댓글을 작성했습니다.",
+			NotificationTargetType.POST,
+			postId
+		);
+	}
+
 	public Page<NotificationResponse> getMyNotifications(Long userId, Pageable pageable) {
 		validateAuthenticated(userId);
 

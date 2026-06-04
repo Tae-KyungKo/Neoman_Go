@@ -16,6 +16,7 @@ import com.neomango.comment.exception.CommentNotFoundException;
 import com.neomango.comment.repository.CommentRepository;
 import com.neomango.global.exception.BusinessException;
 import com.neomango.global.exception.ErrorCode;
+import com.neomango.notification.service.NotificationService;
 import com.neomango.post.entity.Post;
 import com.neomango.post.entity.PostStatus;
 import com.neomango.post.exception.PostNotFoundException;
@@ -34,6 +35,7 @@ public class CommentService {
 	private final CommentRepository commentRepository;
 	private final PostRepository postRepository;
 	private final UserRepository userRepository;
+	private final NotificationService notificationService;
 
 	public CommentResponse createComment(Long postId, Long authorId, CommentCreateRequest request) {
 		if (authorId == null) {
@@ -47,7 +49,16 @@ public class CommentService {
 		validateActiveUser(author);
 
 		Comment comment = Comment.create(post, author, request.content());
-		return CommentResponse.from(commentRepository.save(comment));
+		Comment savedComment = commentRepository.save(comment);
+		notificationService.createPostCommentCreatedNotification(
+			post.getAuthor().getId(),
+			author.getId(),
+			post.getTitle(),
+			author.getNickname(),
+			post.getId()
+		);
+
+		return CommentResponse.from(savedComment);
 	}
 
 	@Transactional(readOnly = true)
