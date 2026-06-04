@@ -175,6 +175,12 @@ class NotificationControllerTest {
 	}
 
 	@Test
+	void markAsReadRejectsUnauthenticatedUser() throws Exception {
+		mockMvc.perform(patch("/api/notifications/{notificationId}/read", 1L))
+			.andExpect(status().isUnauthorized());
+	}
+
+	@Test
 	void markAsReadIsIdempotent() throws Exception {
 		User user = saveUser("notification-read-again@test.com", "notificationReadAgain");
 		Notification notification = createNotification(user, "read again", 1L);
@@ -242,6 +248,12 @@ class NotificationControllerTest {
 		assertThat(secondReadNotification.getReadAt()).isNotNull();
 		assertThat(alreadyReadNotification.getReadAt()).isEqualTo(existingReadAt);
 		assertThat(otherNotification.getReadAt()).isNull();
+	}
+
+	@Test
+	void markAllAsReadRejectsUnauthenticatedUser() throws Exception {
+		mockMvc.perform(patch("/api/notifications/read-all"))
+			.andExpect(status().isUnauthorized());
 	}
 
 	@Test
