@@ -1,6 +1,8 @@
 package com.neomango.team.service;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -119,6 +121,7 @@ public class TeamApplicationService {
 			team.getName(),
 			application.getId()
 		);
+		createTeamMemberJoinedNotifications(team, applicant, loginUserId);
 
 		return TeamApplicationResponse.from(application);
 	}
@@ -252,6 +255,24 @@ public class TeamApplicationService {
 				approvedApplication.getTeam().getCategory()
 			)
 			.forEach(TeamApplication::cancel);
+	}
+
+	private void createTeamMemberJoinedNotifications(Team team, User joinedMember, Long actorId) {
+		Set<Long> receiverIds = new LinkedHashSet<>();
+		teamMemberRepository.findActiveMembersByTeamId(team.getId())
+			.stream()
+			.filter(teamMember -> !teamMember.isOwner())
+			.map(teamMember -> teamMember.getUser().getId())
+			.filter(receiverId -> !receiverId.equals(joinedMember.getId()))
+			.forEach(receiverIds::add);
+
+		receiverIds.forEach(receiverId -> notificationService.createTeamMemberJoinedNotification(
+			receiverId,
+			actorId,
+			team.getName(),
+			joinedMember.getNickname(),
+			team.getId()
+		));
 	}
 
 	private void validateNoPendingApplication(Team team, User applicant) {

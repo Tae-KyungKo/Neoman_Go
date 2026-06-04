@@ -368,6 +368,8 @@ class TeamApplicationServiceTest {
 		when(teamMemberRepository.findByTeamIdAndUserId(TEAM_ID, APPLICANT_ID)).thenReturn(Optional.empty());
 		when(teamApplicationRepository.findOtherPendingApplicationsInSameCategory(100L, APPLICANT_ID, "FUTSAL"))
 			.thenReturn(List.of());
+		when(teamMemberRepository.findActiveMembersByTeamId(TEAM_ID))
+			.thenReturn(List.of(team.getMembers().get(0)));
 
 		TeamApplicationResponse response = teamApplicationService.approveApplication(100L, owner.getId());
 
@@ -383,6 +385,46 @@ class TeamApplicationServiceTest {
 			owner.getId(),
 			team.getName(),
 			application.getId()
+		);
+		verify(notificationService, never()).createTeamMemberJoinedNotification(any(), any(), any(), any(), any());
+	}
+
+	@Test
+	void approveApplicationCreatesTeamMemberJoinedNotificationForExistingActiveMembers() {
+		User owner = user(1L, "owner@test.com", "owner");
+		User existingMember = user(3L, "member@test.com", "member");
+		User applicant = user(APPLICANT_ID, "applicant@test.com", "applicant");
+		Team team = team(TEAM_ID, owner, "FUTSAL");
+		TeamMember existingTeamMember = TeamMember.createMember(team, existingMember);
+		team.addMember(existingTeamMember);
+		TeamApplication application = application(100L, team, applicant);
+		when(teamApplicationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(application));
+		when(teamMemberRepository.findByTeamIdAndRole(TEAM_ID, TeamMemberRole.OWNER))
+			.thenReturn(Optional.of(team.getMembers().get(0)));
+		when(teamMemberRepository.existsByTeamIdAndUserIdAndStatus(TEAM_ID, APPLICANT_ID, TeamMemberStatus.ACTIVE))
+			.thenReturn(false);
+		when(teamMemberRepository.existsActiveMemberByUserIdAndTeamCategory(APPLICANT_ID, "FUTSAL"))
+			.thenReturn(false);
+		when(teamMemberRepository.findByTeamIdAndUserId(TEAM_ID, APPLICANT_ID)).thenReturn(Optional.empty());
+		when(teamApplicationRepository.findOtherPendingApplicationsInSameCategory(100L, APPLICANT_ID, "FUTSAL"))
+			.thenReturn(List.of());
+		when(teamMemberRepository.findActiveMembersByTeamId(TEAM_ID))
+			.thenReturn(List.of(team.getMembers().get(0), existingTeamMember));
+
+		teamApplicationService.approveApplication(100L, owner.getId());
+
+		verify(notificationService).createTeamApplicationApprovedNotification(
+			applicant.getId(),
+			owner.getId(),
+			team.getName(),
+			application.getId()
+		);
+		verify(notificationService).createTeamMemberJoinedNotification(
+			existingMember.getId(),
+			owner.getId(),
+			team.getName(),
+			applicant.getNickname(),
+			team.getId()
 		);
 	}
 
@@ -456,11 +498,14 @@ class TeamApplicationServiceTest {
 		when(teamMemberRepository.findByTeamIdAndUserId(TEAM_ID, APPLICANT_ID)).thenReturn(Optional.empty());
 		when(teamApplicationRepository.findOtherPendingApplicationsInSameCategory(100L, APPLICANT_ID, "FUTSAL"))
 			.thenReturn(List.of(otherApplication));
+		when(teamMemberRepository.findActiveMembersByTeamId(TEAM_ID))
+			.thenReturn(List.of(team.getMembers().get(0)));
 
 		teamApplicationService.approveApplication(100L, owner.getId());
 
 		assertThat(application.getStatus()).isEqualTo(TeamApplicationStatus.APPROVED);
 		assertThat(otherApplication.getStatus()).isEqualTo(TeamApplicationStatus.CANCELED);
+		verify(notificationService, never()).createTeamMemberJoinedNotification(any(), any(), any(), any(), any());
 	}
 
 	private void createApplicationSucceedsWhenNoPendingApplicationExists() {
