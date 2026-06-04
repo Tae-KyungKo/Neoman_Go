@@ -49,7 +49,9 @@ public enum ErrorCode {
 	COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "존재하지 않는 댓글입니다."),
 	COMMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "C002", "작성자만 댓글을 수정 또는 삭제할 수 있습니다."),
 
-	NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "존재하지 않는 공지사항입니다.");
+	NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "존재하지 않는 공지사항입니다."),
+
+	NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NT001", "존재하지 않는 알림입니다.");
 
 	private final HttpStatus httpStatus;
 	private final String code;
