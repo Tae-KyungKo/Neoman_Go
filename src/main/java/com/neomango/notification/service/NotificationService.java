@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import com.neomango.notification.dto.UnreadNotificationCountResponse;
 import com.neomango.notification.entity.Notification;
 import com.neomango.notification.entity.NotificationTargetType;
 import com.neomango.notification.entity.NotificationType;
+import com.neomango.notification.event.NotificationCreatedEvent;
 import com.neomango.notification.exception.NotificationNotFoundException;
 import com.neomango.notification.repository.NotificationRepository;
 import com.neomango.user.entity.User;
@@ -28,6 +30,7 @@ public class NotificationService {
 
 	private final NotificationRepository notificationRepository;
 	private final UserRepository userRepository;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Transactional
 	public void createTeamApplicationCreatedNotification(
@@ -234,6 +237,9 @@ public class NotificationService {
 		}
 
 		User receiver = userRepository.getReferenceById(receiverId);
-		notificationRepository.save(Notification.create(receiver, type, title, message, targetType, targetId));
+		Notification savedNotification = notificationRepository.save(
+			Notification.create(receiver, type, title, message, targetType, targetId)
+		);
+		eventPublisher.publishEvent(new NotificationCreatedEvent(savedNotification.getId(), receiverId));
 	}
 }

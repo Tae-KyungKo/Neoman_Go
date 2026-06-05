@@ -2,12 +2,16 @@ package com.neomango.notification.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -16,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.neomango.notification.entity.Notification;
 import com.neomango.notification.entity.NotificationTargetType;
 import com.neomango.notification.entity.NotificationType;
+import com.neomango.notification.event.NotificationCreatedEvent;
 import com.neomango.notification.repository.NotificationRepository;
 import com.neomango.user.entity.User;
 import com.neomango.user.repository.UserRepository;
@@ -29,8 +34,21 @@ class NotificationServiceTest {
 	@Mock
 	private UserRepository userRepository;
 
+	@Mock
+	private ApplicationEventPublisher eventPublisher;
+
 	@InjectMocks
 	private NotificationService notificationService;
+
+	@BeforeEach
+	void setUp() {
+		lenient().when(notificationRepository.save(any(Notification.class)))
+			.thenAnswer(invocation -> {
+				Notification notification = invocation.getArgument(0);
+				ReflectionTestUtils.setField(notification, "id", 100L);
+				return notification;
+			});
+	}
 
 	@Test
 	void createTeamApplicationCreatedNotificationSavesNotification() {
@@ -183,6 +201,7 @@ class NotificationServiceTest {
 
 		verify(userRepository, never()).getReferenceById(1L);
 		verify(notificationRepository, never()).save(any(Notification.class));
+		verify(eventPublisher, never()).publishEvent(any(NotificationCreatedEvent.class));
 	}
 
 	@Test
@@ -191,6 +210,7 @@ class NotificationServiceTest {
 
 		verify(userRepository, never()).getReferenceById(1L);
 		verify(notificationRepository, never()).save(any(Notification.class));
+		verify(eventPublisher, never()).publishEvent(any(NotificationCreatedEvent.class));
 	}
 
 	@Test
@@ -199,6 +219,7 @@ class NotificationServiceTest {
 
 		verify(userRepository, never()).getReferenceById(1L);
 		verify(notificationRepository, never()).save(any(Notification.class));
+		verify(eventPublisher, never()).publishEvent(any(NotificationCreatedEvent.class));
 	}
 
 	@Test
@@ -207,6 +228,7 @@ class NotificationServiceTest {
 
 		verify(userRepository, never()).getReferenceById(1L);
 		verify(notificationRepository, never()).save(any(Notification.class));
+		verify(eventPublisher, never()).publishEvent(any(NotificationCreatedEvent.class));
 	}
 
 	@Test
@@ -215,6 +237,7 @@ class NotificationServiceTest {
 
 		verify(userRepository, never()).getReferenceById(1L);
 		verify(notificationRepository, never()).save(any(Notification.class));
+		verify(eventPublisher, never()).publishEvent(any(NotificationCreatedEvent.class));
 	}
 
 	@Test
@@ -223,6 +246,21 @@ class NotificationServiceTest {
 
 		verify(userRepository, never()).getReferenceById(1L);
 		verify(notificationRepository, never()).save(any(Notification.class));
+		verify(eventPublisher, never()).publishEvent(any(NotificationCreatedEvent.class));
+	}
+
+	@Test
+	void createNotificationPublishesNotificationCreatedEvent() {
+		User receiver = User.create("applicant@test.com", "encoded-password", "applicant");
+		when(userRepository.getReferenceById(2L)).thenReturn(receiver);
+
+		notificationService.createTeamApplicationApprovedNotification(2L, 1L, "Futsal Team", 10L);
+
+		ArgumentCaptor<NotificationCreatedEvent> eventCaptor = ArgumentCaptor.forClass(NotificationCreatedEvent.class);
+		verify(eventPublisher).publishEvent(eventCaptor.capture());
+		NotificationCreatedEvent event = eventCaptor.getValue();
+		assertThat(event.notificationId()).isEqualTo(100L);
+		assertThat(event.receiverId()).isEqualTo(2L);
 	}
 
 	private void assertSavedNotification(
