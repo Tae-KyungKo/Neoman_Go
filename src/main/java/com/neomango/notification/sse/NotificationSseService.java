@@ -7,12 +7,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.neomango.notification.dto.NotificationResponse;
+
 @Service
 public class NotificationSseService {
 
 	private static final long SSE_TIMEOUT_MILLIS = 60L * 60L * 1000L;
 	private static final String CONNECTED_EVENT_NAME = "connected";
 	private static final String CONNECTED_EVENT_DATA = "connected";
+	private static final String NOTIFICATION_EVENT_NAME = "notification";
 
 	private final ConcurrentHashMap<Long, Set<SseEmitter>> emitters = new ConcurrentHashMap<>();
 
@@ -22,6 +25,27 @@ public class NotificationSseService {
 		sendConnectedEvent(userId, emitter);
 
 		return emitter;
+	}
+
+	public int sendToUser(Long receiverId, NotificationResponse response) {
+		Set<SseEmitter> userEmitters = emitters.get(receiverId);
+		if (userEmitters == null || userEmitters.isEmpty()) {
+			return 0;
+		}
+
+		int successCount = 0;
+		for (SseEmitter emitter : userEmitters) {
+			try {
+				emitter.send(SseEmitter.event()
+					.name(NOTIFICATION_EVENT_NAME)
+					.data(response));
+				successCount++;
+			} catch (IOException | RuntimeException e) {
+				remove(receiverId, emitter);
+			}
+		}
+
+		return successCount;
 	}
 
 	SseEmitter createEmitter() {
