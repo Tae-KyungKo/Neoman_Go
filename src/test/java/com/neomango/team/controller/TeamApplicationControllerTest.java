@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +18,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.neomango.auth.jwt.JwtTokenProvider;
+import com.neomango.notification.entity.Notification;
+import com.neomango.notification.entity.NotificationTargetType;
+import com.neomango.notification.entity.NotificationType;
+import com.neomango.notification.repository.NotificationRepository;
 import com.neomango.team.entity.Team;
 import com.neomango.team.entity.TeamApplication;
 import com.neomango.team.entity.TeamApplicationStatus;
@@ -55,6 +61,9 @@ class TeamApplicationControllerTest {
 	@Autowired
 	private TeamApplicationRepository teamApplicationRepository;
 
+	@Autowired
+	private NotificationRepository notificationRepository;
+
 	@BeforeEach
 	void setUp() {
 		cleanUp();
@@ -66,6 +75,7 @@ class TeamApplicationControllerTest {
 	}
 
 	private void cleanUp() {
+		notificationRepository.deleteAll();
 		teamApplicationRepository.deleteAll();
 		userCategoryMembershipRepository.deleteAll();
 		teamMemberRepository.deleteAll();
@@ -127,6 +137,58 @@ class TeamApplicationControllerTest {
 		TeamApplication approvedApplication = teamApplicationRepository.findById(application.getId()).orElseThrow();
 		assertThat(approvedApplication.getStatus()).isEqualTo(TeamApplicationStatus.APPROVED);
 		assertThat(teamMemberRepository.existsByTeamIdAndUserId(team.getId(), applicant.getId())).isTrue();
+		assertThat(notificationRepository.count()).isEqualTo(1);
+		Notification notification = notificationRepository.findAll().get(0);
+		assertThat(notification.getReceiver().getId()).isEqualTo(applicant.getId());
+		assertThat(notification.getType()).isEqualTo(NotificationType.TEAM_APPLICATION_APPROVED);
+		assertThat(notification.getTitle()).isEqualTo("가입 신청 승인");
+		assertThat(notification.getMessage()).isEqualTo("Futsal Team 팀 가입 신청이 승인되었습니다.");
+		assertThat(notification.getTargetType()).isEqualTo(NotificationTargetType.TEAM_APPLICATION);
+		assertThat(notification.getTargetId()).isEqualTo(application.getId());
+	}
+
+	@Test
+	void approveApplication_createsJoinedNotificationForExistingActiveMemberOnly() throws Exception {
+		User owner = userRepository.save(User.create("owner-joined@test.com", "encoded-password", "owner"));
+		User member = userRepository.save(User.create("member-joined@test.com", "encoded-password", "member"));
+		User inactiveUser = userRepository.save(User.create("inactive-joined@test.com", "encoded-password", "inactive"));
+		User applicant = userRepository.save(User.create("applicant-joined@test.com", "encoded-password", "applicant"));
+		Team team = Team.create("Futsal Team", null, "FUTSAL", owner);
+		team.addMember(TeamMember.createMember(team, member));
+		TeamMember inactiveMember = TeamMember.createMember(team, inactiveUser);
+		inactiveMember.deactivate();
+		team.addMember(inactiveMember);
+		Team savedTeam = teamRepository.saveAndFlush(team);
+		TeamApplication application = teamApplicationRepository.save(
+			TeamApplication.create(savedTeam, applicant, "가입하고 싶습니다.")
+		);
+		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
+
+		mockMvc.perform(post("/api/team-applications/{applicationId}/approve", application.getId())
+				.header("Authorization", "Bearer " + accessToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.status").value("APPROVED"));
+
+		List<Notification> notifications = notificationRepository.findAll();
+		assertThat(notifications).hasSize(2);
+		Notification approvedNotification = notifications.stream()
+			.filter(notification -> notification.getType() == NotificationType.TEAM_APPLICATION_APPROVED)
+			.findFirst()
+			.orElseThrow();
+		Notification joinedNotification = notifications.stream()
+			.filter(notification -> notification.getType() == NotificationType.TEAM_MEMBER_JOINED)
+			.findFirst()
+			.orElseThrow();
+		assertThat(approvedNotification.getReceiver().getId()).isEqualTo(applicant.getId());
+		assertThat(joinedNotification.getReceiver().getId()).isEqualTo(member.getId());
+		assertThat(joinedNotification.getReceiver().getId()).isNotEqualTo(owner.getId());
+		assertThat(joinedNotification.getReceiver().getId()).isNotEqualTo(applicant.getId());
+		assertThat(joinedNotification.getReceiver().getId()).isNotEqualTo(inactiveUser.getId());
+		assertThat(joinedNotification.getType()).isEqualTo(NotificationType.TEAM_MEMBER_JOINED);
+		assertThat(joinedNotification.getTitle()).isEqualTo("새 멤버 가입");
+		assertThat(joinedNotification.getMessage()).isEqualTo("applicant님이 Futsal Team 팀에 합류했습니다.");
+		assertThat(joinedNotification.getTargetType()).isEqualTo(NotificationTargetType.TEAM);
+		assertThat(joinedNotification.getTargetId()).isEqualTo(savedTeam.getId());
 	}
 
 	@Test
@@ -149,6 +211,13 @@ class TeamApplicationControllerTest {
 		TeamApplication rejectedApplication = teamApplicationRepository.findById(application.getId()).orElseThrow();
 		assertThat(rejectedApplication.getStatus()).isEqualTo(TeamApplicationStatus.REJECTED);
 		assertThat(teamMemberRepository.existsByTeamIdAndUserId(team.getId(), applicant.getId())).isFalse();
+		Notification notification = notificationRepository.findAll().get(0);
+		assertThat(notification.getReceiver().getId()).isEqualTo(applicant.getId());
+		assertThat(notification.getType()).isEqualTo(NotificationType.TEAM_APPLICATION_REJECTED);
+		assertThat(notification.getTitle()).isEqualTo("가입 신청 거절");
+		assertThat(notification.getMessage()).isEqualTo("Futsal Team 팀 가입 신청이 거절되었습니다.");
+		assertThat(notification.getTargetType()).isEqualTo(NotificationTargetType.TEAM_APPLICATION);
+		assertThat(notification.getTargetId()).isEqualTo(application.getId());
 	}
 
 	@Test
@@ -166,6 +235,7 @@ class TeamApplicationControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.code").value("T002"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -183,6 +253,7 @@ class TeamApplicationControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.code").value("T002"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -199,6 +270,7 @@ class TeamApplicationControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("TA003"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -275,6 +347,9 @@ class TeamApplicationControllerTest {
 		assertThat(approvedApplication.getStatus()).isEqualTo(TeamApplicationStatus.APPROVED);
 		assertThat(canceledApplication.getStatus()).isEqualTo(TeamApplicationStatus.CANCELED);
 		assertThat(canceledApplication.isActive()).isFalse();
+		assertThat(notificationRepository.findAll())
+			.extracting(Notification::getType)
+			.containsExactly(NotificationType.TEAM_APPLICATION_APPROVED);
 	}
 
 	@Test
@@ -346,5 +421,6 @@ class TeamApplicationControllerTest {
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("TA003"));
+		assertThat(notificationRepository.count()).isZero();
 	}
 }

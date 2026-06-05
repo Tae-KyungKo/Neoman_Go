@@ -1,0 +1,96 @@
+# SSE 인증 방식 비교
+
+## 전제
+- 현재 너만고는 JWT Access Token을 `Authorization: Bearer {accessToken}` 헤더로 전달하는 구조를 사용한다.
+- SSE는 알림 실시간 전달 보조 채널이며, 알림의 원본 데이터는 DB에 저장한다.
+- 이 문서는 Phase 7-0 문서 정리 단계의 판단 기준이며, 구현 코드는 포함하지 않는다.
+
+## 1. 기본 EventSource + 쿠키 인증
+
+### 장점
+- 브라우저 기본 `EventSource`를 그대로 사용할 수 있어 프론트 구현이 단순하다.
+- 자동 재연결 동작을 브라우저에 맡길 수 있다.
+- 별도 SSE 클라이언트 라이브러리가 필요 없다.
+
+### 단점
+- 현재 JWT를 Authorization header로 전달하는 너만고 구조와 맞지 않는다.
+- 쿠키 기반 인증으로 전환하거나 SSE 전용 쿠키 인증 정책을 추가해야 한다.
+- CORS, SameSite, Secure, CSRF 방어 정책을 함께 재설계해야 한다.
+
+### 보안 리스크
+- 쿠키 인증을 사용할 경우 CSRF 방어 정책이 필요하다.
+- 쿠키 설정이 잘못되면 의도하지 않은 cross-site 요청에 인증 정보가 포함될 수 있다.
+
+### 현재 구조 적합성
+- 낮다.
+- 현재 인증 구조를 바꾸는 비용이 크므로 Phase 7의 1차 선택지로 적합하지 않다.
+
+## 2. EventSource + query parameter token
+
+### 장점
+- 기본 `EventSource`를 사용할 수 있다.
+- Authorization header를 제어할 수 없는 문제를 우회할 수 있다.
+- 구현 난이도는 낮다.
+
+### 단점
+- URL에 토큰이 포함된다.
+- 서버 접근 로그, 브라우저 히스토리, 프록시 로그, 모니터링 도구에 토큰이 노출될 수 있다.
+- 토큰 만료 및 재연결 처리 시 URL 재생성 정책이 필요하다.
+
+### 보안 리스크
+- Access Token이 URL 로그에 남을 가능성이 높다.
+- HTTPS를 사용하더라도 서버/프록시/운영 로그 노출 위험은 별도로 남는다.
+
+### 현재 구조 적합성
+- 낮다.
+- 구현은 쉽지만 보안 리스크가 커서 기본 추천안으로 두지 않는다.
+
+## 3. @microsoft/fetch-event-source + Authorization header
+
+### 장점
+- 현재 JWT Authorization header 구조를 유지할 수 있다.
+- `Authorization: Bearer {accessToken}` 전달 방식과 잘 맞는다.
+- Access Token 만료 시 재연결 로직을 애플리케이션 레벨에서 제어하기 쉽다.
+- URL에 토큰을 노출하지 않는다.
+
+### 단점
+- 프론트에 외부 라이브러리 의존성이 추가된다.
+- 기본 `EventSource`보다 연결/재시도/중단 처리를 명시적으로 관리해야 한다.
+- 라이브러리 API와 브라우저 호환성을 확인해야 한다.
+
+### 보안 리스크
+- 토큰 저장 위치가 안전하지 않으면 XSS에 취약하다.
+- 장시간 연결 중 Access Token 만료 시 재연결과 토큰 재발급 흐름을 명확히 해야 한다.
+
+### 현재 구조 적합성
+- 높다.
+- 현재 인증 구조를 유지하면서 Authorization header를 사용할 수 있으므로 Phase 7의 1차 추천안이다.
+
+## 4. fetch + ReadableStream 직접 구현
+
+### 장점
+- 외부 SSE 클라이언트 라이브러리 없이 Authorization header를 사용할 수 있다.
+- 연결, 재시도, 파싱, 중단 정책을 완전히 제어할 수 있다.
+- 특수한 재연결 정책이나 관측 지표를 직접 설계하기 좋다.
+
+### 단점
+- SSE 이벤트 파싱, 재연결, heartbeat, 오류 처리를 직접 구현해야 한다.
+- 구현 복잡도가 높고 테스트 부담이 크다.
+- 현재 Phase 7 범위에서는 과한 선택일 가능성이 높다.
+
+### 보안 리스크
+- 직접 구현한 재연결 로직이 토큰 만료, 로그 출력, 오류 처리에서 실수할 가능성이 있다.
+- 검증되지 않은 파서 구현은 운영 장애로 이어질 수 있다.
+
+### 현재 구조 적합성
+- 중간이다.
+- 구조적으로는 가능하지만 현재 단계에서는 유지보수 비용이 크다.
+
+## 최종 추천
+- Phase 7의 1차 추천안은 `@microsoft/fetch-event-source + Authorization header` 방식이다.
+- 이유는 다음과 같다.
+    - 현재 너만고는 JWT Access Token을 Authorization header로 사용하는 구조다.
+    - 기본 EventSource는 Authorization header 제어가 어렵다.
+    - query parameter token은 URL 로그, 히스토리, 프록시 로그 노출 위험이 있다.
+    - 직접 ReadableStream 구현은 현재 단계에서 복잡도가 높다.
+- 실제 라이브러리 설치와 프론트 구현은 Phase 7-8 또는 Phase 7-9에서 진행한다.

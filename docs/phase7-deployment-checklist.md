@@ -1,0 +1,73 @@
+# Phase 7 배포 전 점검 체크리스트
+
+## 전제
+- Phase 7은 로컬 단일 Spring Boot 인스턴스 기준으로 먼저 개발한다.
+- 다중 인스턴스 운영은 SSE 연결 저장 방식, 이벤트 전파 방식, 메시지 브로커 필요성을 별도로 검토한 뒤 확장한다.
+- 이 문서는 배포 단계에서 빠뜨리기 쉬운 설정과 운영 리스크를 점검하기 위한 문서다.
+
+## SSE 엔드포인트
+- SSE endpoint CORS 설정을 확인한다.
+- Authorization header가 CORS preflight와 실제 요청에서 허용되는지 확인한다.
+- Access Token 만료 시 SSE 재연결 정책을 확인한다.
+- 토큰 재발급 후 기존 SSE 연결을 어떻게 종료하고 새 연결을 맺을지 정의한다.
+- HTTPS 환경에서 토큰이 URL에 노출되지 않는 방식을 사용한다.
+
+## 프록시와 서버 설정
+- Nginx 또는 프록시 사용 시 buffering off 설정을 확인한다.
+- 프록시 idle timeout이 SseEmitter timeout보다 짧지 않은지 확인한다.
+- SseEmitter timeout 값을 서비스 정책에 맞게 설정한다.
+- heartbeat 또는 keep-alive 이벤트 필요 여부를 확인한다.
+
+## SseEmitter 생명주기
+- `onCompletion`에서 emitter를 정리한다.
+- `onTimeout`에서 emitter를 정리한다.
+- `onError`에서 emitter를 정리한다.
+- SSE 전송 실패 로그를 남긴다.
+- 실패한 emitter를 계속 보관하지 않는다.
+
+## AFTER_COMMIT 기반 SSE 전송
+- Notification 저장 후 SSE 전송이 트랜잭션 커밋 이후에만 수행되는지 확인한다.
+- `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)`를 사용하고 `fallbackExecution = true`를 사용하지 않는지 확인한다.
+- 롤백된 트랜잭션에 대해 SSE가 전송되지 않는지 확인한다.
+- SSE 전송 실패가 비즈니스 트랜잭션이나 DB Notification 저장 결과를 롤백하지 않는지 확인한다.
+- emitter 전송 실패 시 로그를 남기고 cleanup 되는지 확인한다.
+- AFTER_COMMIT listener에서 커밋된 Notification을 다시 조회해 응답 DTO로 변환한 뒤 전송하는지 확인한다.
+- 다중 인스턴스 환경에서는 AFTER_COMMIT 이후에도 해당 사용자의 emitter가 다른 서버에 있을 수 있으므로 Redis Pub/Sub 또는 메시지 브로커 도입 필요성을 재검토한다.
+- 운영 환경에서는 SSE 전송 실패 로그, SSE 전송 실패 수, active SSE connection 수를 모니터링한다.
+
+## 연결 정책
+- 같은 사용자의 다중 탭 연결 허용 여부를 정의한다.
+- 다중 탭을 허용한다면 사용자별 emitter를 단일 값이 아니라 컬렉션으로 관리할지 결정한다.
+- 다중 탭을 제한한다면 새 연결 시 기존 연결 종료 정책을 정의한다.
+- active SSE connection 수를 모니터링한다.
+
+## 단일 인스턴스와 다중 인스턴스 차이
+- 단일 인스턴스에서는 메모리 기반 emitter 저장소로 시작할 수 있다.
+- 다중 인스턴스에서는 사용자가 연결된 인스턴스와 알림 생성 인스턴스가 다를 수 있다.
+- 다중 인스턴스 운영에서는 Redis Pub/Sub 또는 메시지 브로커 도입 필요 여부를 검토한다.
+- 로드밸런서 sticky session만으로 정합성을 보장할지, 이벤트 브로드캐스트를 사용할지 결정한다.
+
+## DB와 인덱스
+- `notifications` 테이블 마이그레이션 전략을 준비한다.
+- 알림 목록 조회를 위해 `receiver_id + created_at` 인덱스를 검토한다.
+- 안읽음 알림 조회 또는 카운트가 필요하면 `receiver_id + read_at` 인덱스를 검토한다.
+- 인덱스 추가는 조회 성능을 높이지만 쓰기 비용을 증가시키므로 알림 생성 빈도를 함께 고려한다.
+
+## 보관 기간과 배치
+- 30일이 지난 알림 Hard Delete 배치 필요 여부를 확인한다.
+- 배치 실행 주기, 삭제 건수 제한, 운영 시간대를 정의한다.
+- 대량 삭제가 DB 락과 I/O에 미치는 영향을 검토한다.
+- 배치 구현 전까지 운영 DB에 알림 데이터가 계속 누적되는 리스크를 기록한다.
+
+## 관측과 운영 로그
+- SSE 전송 성공/실패 로그 수준을 정한다.
+- 실패 로그에 Access Token이나 민감 정보가 남지 않도록 한다.
+- active SSE connection 수를 모니터링한다.
+- 알림 생성 수, 안읽음 알림 수, SSE 전송 실패 수를 운영 지표 후보로 둔다.
+
+## 배포 전 확인
+- 운영 DB 마이그레이션 전략을 확정한다.
+- 롤백 시 새 알림 테이블 또는 컬럼을 어떻게 처리할지 확인한다.
+- 프론트 배포와 백엔드 배포 순서를 정한다.
+- SSE 기능이 실패해도 알림 목록 API로 복구 가능한지 확인한다.
+- Gradle 또는 NPM 의존성 변경이 있는 경우 별도 리뷰를 진행한다.

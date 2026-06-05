@@ -25,6 +25,10 @@ import com.neomango.comment.dto.CommentUpdateRequest;
 import com.neomango.comment.entity.Comment;
 import com.neomango.comment.entity.CommentStatus;
 import com.neomango.comment.repository.CommentRepository;
+import com.neomango.notification.entity.Notification;
+import com.neomango.notification.entity.NotificationTargetType;
+import com.neomango.notification.entity.NotificationType;
+import com.neomango.notification.repository.NotificationRepository;
 import com.neomango.post.entity.Post;
 import com.neomango.post.repository.PostRepository;
 import com.neomango.team.repository.TeamApplicationRepository;
@@ -51,6 +55,9 @@ class CommentControllerTest {
 
 	@Autowired
 	private CommentRepository commentRepository;
+
+	@Autowired
+	private NotificationRepository notificationRepository;
 
 	@Autowired
 	private PostRepository postRepository;
@@ -101,6 +108,44 @@ class CommentControllerTest {
 	}
 
 	@Test
+	void createCommentCreatesPostCommentNotificationToPostAuthor() throws Exception {
+		User postAuthor = userRepository.save(User.create("post-author@test.com", "encoded-password", "postAuthor"));
+		User commentAuthor = userRepository.save(User.create("comment-author@test.com", "encoded-password", "commentAuthor"));
+		Post post = postRepository.save(Post.create("GAME", "post title", "content", postAuthor));
+		CommentCreateRequest request = new CommentCreateRequest("comment");
+
+		mockMvc.perform(post("/api/posts/{postId}/comments", post.getId())
+				.header("Authorization", "Bearer " + accessToken(commentAuthor))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isCreated());
+
+		assertThat(notificationRepository.count()).isEqualTo(1);
+		Notification notification = notificationRepository.findAll().get(0);
+		assertThat(notification.getReceiver().getId()).isEqualTo(postAuthor.getId());
+		assertThat(notification.getType()).isEqualTo(NotificationType.POST_COMMENT_CREATED);
+		assertThat(notification.getTitle()).isEqualTo("새 댓글");
+		assertThat(notification.getMessage()).contains("commentAuthor", "post title");
+		assertThat(notification.getTargetType()).isEqualTo(NotificationTargetType.POST);
+		assertThat(notification.getTargetId()).isEqualTo(post.getId());
+	}
+
+	@Test
+	void createCommentDoesNotCreateNotificationWhenAuthorCommentsOwnPost() throws Exception {
+		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		CommentCreateRequest request = new CommentCreateRequest("comment");
+
+		mockMvc.perform(post("/api/posts/{postId}/comments", post.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isCreated());
+
+		assertThat(notificationRepository.count()).isZero();
+	}
+
+	@Test
 	void createCommentRejectsRequestWithoutAuthentication() throws Exception {
 		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
@@ -110,6 +155,8 @@ class CommentControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isUnauthorized());
+
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -139,6 +186,8 @@ class CommentControllerTest {
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("P001"));
+
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -252,6 +301,8 @@ class CommentControllerTest {
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("G001"));
+
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -266,6 +317,8 @@ class CommentControllerTest {
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("G001"));
+
+		assertThat(notificationRepository.count()).isZero();
 	}
 
 	@Test
@@ -298,6 +351,7 @@ class CommentControllerTest {
 	}
 
 	private void deleteAll() {
+		notificationRepository.deleteAll();
 		teamApplicationRepository.deleteAll();
 		userCategoryMembershipRepository.deleteAll();
 		teamMemberRepository.deleteAll();

@@ -15,6 +15,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.neomango.auth.jwt.JwtTokenProvider;
+import com.neomango.notification.repository.NotificationRepository;
 import com.neomango.team.repository.TeamMemberRepository;
 import com.neomango.team.repository.TeamRepository;
 import com.neomango.user.entity.User;
@@ -45,8 +46,12 @@ class UserControllerTest {
 	@Autowired
 	private TeamMemberRepository teamMemberRepository;
 
+	@Autowired
+	private NotificationRepository notificationRepository;
+
 	@BeforeEach
 	void setUp() {
+		notificationRepository.deleteAll();
 		teamMemberRepository.deleteAll();
 		teamRepository.deleteAll();
 		userRepository.deleteAll();

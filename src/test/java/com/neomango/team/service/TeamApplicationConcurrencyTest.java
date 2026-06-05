@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.neomango.notification.repository.NotificationRepository;
 import com.neomango.team.dto.TeamApplicationResponse;
 import com.neomango.team.entity.Team;
 import com.neomango.team.entity.TeamApplication;
@@ -53,6 +54,9 @@ class TeamApplicationConcurrencyTest {
 	@Autowired
 	private UserRepository userRepository;
 
+	@Autowired
+	private NotificationRepository notificationRepository;
+
 	@BeforeEach
 	void setUp() {
 		cleanUp();
@@ -64,6 +68,7 @@ class TeamApplicationConcurrencyTest {
 	}
 
 	private void cleanUp() {
+		notificationRepository.deleteAll();
 		teamApplicationRepository.deleteAll();
 		userCategoryMembershipRepository.deleteAll();
 		teamMemberRepository.deleteAll();

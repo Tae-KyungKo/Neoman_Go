@@ -1,12 +1,15 @@
 package com.neomango.team.service;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.neomango.global.exception.BusinessException;
 import com.neomango.global.exception.ErrorCode;
+import com.neomango.notification.service.NotificationService;
 import com.neomango.team.dto.TeamMemberListResponse;
 import com.neomango.team.entity.Team;
 import com.neomango.team.entity.TeamApplication;
@@ -37,6 +40,7 @@ public class TeamMemberService {
 	private final TeamApplicationRepository teamApplicationRepository;
 	private final TeamMemberRepository teamMemberRepository;
 	private final UserCategoryMembershipRepository userCategoryMembershipRepository;
+	private final NotificationService notificationService;
 
 	public List<TeamMemberListResponse> getActiveTeamMembers(Long teamId) {
 		teamRepository.findByIdAndStatusNotAndDeletedAtIsNull(teamId, TeamStatus.DELETED)
@@ -61,6 +65,7 @@ public class TeamMemberService {
 		}
 
 		deactivateMemberAndReleaseCategory(team, teamMember);
+		createTeamMemberLeftNotifications(team, teamMember);
 	}
 
 	@Transactional
@@ -88,6 +93,12 @@ public class TeamMemberService {
 
 		target.deactivate();
 		userCategoryMembershipRepository.deleteByUserIdAndCategory(target.getUser().getId(), team.getCategory());
+		notificationService.createTeamMemberKickedNotification(
+			target.getUser().getId(),
+			requesterUserId,
+			team.getName(),
+			team.getId()
+		);
 	}
 
 	@Transactional
@@ -115,6 +126,12 @@ public class TeamMemberService {
 		if (teamMemberRepository.countActiveOwnersByTeamId(teamId) != 1) {
 			throw new TeamOwnerInvariantViolationException();
 		}
+		notificationService.createTeamOwnerDelegatedNotification(
+			target.getUser().getId(),
+			requesterUserId,
+			target.getTeam().getName(),
+			teamId
+		);
 	}
 
 	private void leaveOwnerTeam(Team team, TeamMember ownerMember) {
@@ -138,5 +155,22 @@ public class TeamMemberService {
 			teamMember.getUser().getId(),
 			team.getCategory()
 		);
+	}
+
+	private void createTeamMemberLeftNotifications(Team team, TeamMember leftMember) {
+		Set<Long> receiverIds = new LinkedHashSet<>();
+		teamMemberRepository.findActiveMembersByTeamId(team.getId())
+			.stream()
+			.map(teamMember -> teamMember.getUser().getId())
+			.filter(receiverId -> !receiverId.equals(leftMember.getUser().getId()))
+			.forEach(receiverIds::add);
+
+		receiverIds.forEach(receiverId -> notificationService.createTeamMemberLeftNotification(
+			receiverId,
+			leftMember.getUser().getId(),
+			team.getName(),
+			leftMember.getUser().getNickname(),
+			team.getId()
+		));
 	}
 }
