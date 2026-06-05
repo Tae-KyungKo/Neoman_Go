@@ -25,6 +25,16 @@
 - SSE 전송 실패 로그를 남긴다.
 - 실패한 emitter를 계속 보관하지 않는다.
 
+## AFTER_COMMIT 기반 SSE 전송
+- Notification 저장 후 SSE 전송이 트랜잭션 커밋 이후에만 수행되는지 확인한다.
+- `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)`를 사용하고 `fallbackExecution = true`를 사용하지 않는지 확인한다.
+- 롤백된 트랜잭션에 대해 SSE가 전송되지 않는지 확인한다.
+- SSE 전송 실패가 비즈니스 트랜잭션이나 DB Notification 저장 결과를 롤백하지 않는지 확인한다.
+- emitter 전송 실패 시 로그를 남기고 cleanup 되는지 확인한다.
+- AFTER_COMMIT listener에서 커밋된 Notification을 다시 조회해 응답 DTO로 변환한 뒤 전송하는지 확인한다.
+- 다중 인스턴스 환경에서는 AFTER_COMMIT 이후에도 해당 사용자의 emitter가 다른 서버에 있을 수 있으므로 Redis Pub/Sub 또는 메시지 브로커 도입 필요성을 재검토한다.
+- 운영 환경에서는 SSE 전송 실패 로그, SSE 전송 실패 수, active SSE connection 수를 모니터링한다.
+
 ## 연결 정책
 - 같은 사용자의 다중 탭 연결 허용 여부를 정의한다.
 - 다중 탭을 허용한다면 사용자별 emitter를 단일 값이 아니라 컬렉션으로 관리할지 결정한다.

@@ -334,6 +334,15 @@
     - 트랜잭션 롤백이 발생한 경우
 - 알림 생성은 원본 비즈니스 상태 변경과 같은 트랜잭션 경계 안에서 처리하는 것을 우선 고려한다.
 - 트랜잭션 커밋 전 SSE 전송을 먼저 수행하지 않는다.
+- Notification DB 저장이 알림의 본체이며, SSE는 접속 중인 사용자에게 알림을 실시간으로 전달하는 보조 채널이다.
+- Notification 저장 후 SSE 전송은 트랜잭션 커밋 성공 이후에만 수행한다.
+- 트랜잭션이 롤백되면 SSE 전송도 발생하지 않아야 한다.
+- Phase 7-7에서는 Notification 저장 후 `NotificationCreatedEvent`를 발행하고, `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)` listener에서 SSE 전송을 수행한다.
+- `fallbackExecution = true`는 사용하지 않는다. 트랜잭션 없이 발행된 이벤트를 임의로 전송하면 커밋 이후 전송 정책이 흐려지기 때문이다.
+- 단순 try-catch 방식으로 트랜잭션 내부에서 SSE를 바로 보내지 않는다.
+- `NotificationCreatedEvent`에는 Entity를 직접 담지 않고 `notificationId`, `receiverId` 같은 식별자만 담는 방향을 원칙으로 한다.
+- AFTER_COMMIT listener는 커밋된 Notification을 다시 조회한 뒤 `NotificationResponse`로 변환해 SSE로 전송한다.
+- Notification 저장 실패는 기존 비즈니스 트랜잭션 롤백을 허용한다.
 
 ### 9.4 읽음 처리
 - 알림은 읽음/안읽음 상태를 가진다.
@@ -356,8 +365,11 @@
 - SSE 전송 실패는 알림 유실로 보지 않는다.
 - SSE 전송 실패 후에도 DB 알림은 유지한다.
 - 사용자는 직접 조회 또는 새로고침 후 알림 목록 API로 안읽음 알림을 확인할 수 있다.
+- SSE 전송 실패는 비즈니스 트랜잭션이나 Notification DB 저장 결과를 롤백하지 않는다.
+- AFTER_COMMIT listener에서 발생한 SSE 전송 실패 예외는 외부로 전파하지 않고 로그 기록과 emitter cleanup으로 처리한다.
+- SSE 전송 실패 시 실패한 emitter는 정리한다.
 - Phase 7 초기 구현에서는 SSE 전송 실패에 대한 복잡한 재시도 큐를 만들지 않는다.
-- 전송 실패한 emitter는 정리한다.
+- Redis Pub/Sub, 메시지 브로커, 복잡한 재시도 큐는 Phase 7-7 범위가 아니다.
 
 ### 9.7 Phase 7 MVP 알림 이벤트
 - 팀 가입 신청 생성
