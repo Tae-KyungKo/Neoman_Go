@@ -167,3 +167,27 @@ Phase 8-2에서 하지 않는 작업:
 - Nginx 설정 작성
 - GitHub Actions workflow 작성
 - 실제 운영 도메인 CORS/SSE 검증
+
+## 10. Phase 8-3 완료 기준
+
+Phase 8-3에서는 Flyway baseline을 도입한다.
+
+완료 기준:
+
+- Flyway dependency 추가
+- `src/main/resources/db/migration/V1__baseline_schema.sql` 작성
+- prodlike/prod Flyway 활성화
+- local/test Flyway 비활성화
+- prodlike/prod `ddl-auto=validate` 유지
+- V1 migration은 seed data 없이 DDL만 포함
+- rollback은 down migration이 아니라 forward fix 또는 DB snapshot/backup 복구 기준으로 문서화
+
+Phase 8-3에서 하지 않는 작업:
+
+- ADMIN bootstrap 구현
+- Dockerfile 작성
+- Docker Compose 작성
+- Nginx 설정 작성
+- GitHub Actions workflow 작성
+- Redis AOF/보안 설정 구현
+- CORS/SSE 운영 도메인 검증

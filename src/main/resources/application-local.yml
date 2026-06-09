@@ -14,6 +14,9 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
 
+  flyway:
+    enabled: false
+
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:

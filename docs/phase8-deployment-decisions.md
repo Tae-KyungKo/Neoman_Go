@@ -260,3 +260,20 @@ src/main/resources/application-secret.yml
 - Nginx 설정 작성
 - GitHub Actions workflow 작성
 - 실제 운영 secret 생성 또는 조회
+
+## 13. Phase 8-3 Flyway Baseline 결정
+
+Phase 8-3부터 prodlike/prod DB schema는 Flyway 기준으로 관리한다.
+
+결정:
+
+- `org.flywaydb:flyway-core`, `org.flywaydb:flyway-mysql` dependency를 추가한다.
+- `V1__baseline_schema.sql`은 현재 JPA Entity 기준 DDL만 포함한다.
+- V1에는 ADMIN 계정, 샘플 데이터, 운영 seed data를 넣지 않는다.
+- local/test에서는 Flyway를 비활성화한다.
+- prodlike/prod에서만 Flyway를 활성화한다.
+- prodlike/prod는 `ddl-auto=validate`를 유지한다.
+- `baselineOnMigrate=true`는 사용하지 않는다.
+- 1차 배포는 빈 DB에 V1 migration부터 적용하는 정책이다.
+
+세부 기준은 [phase8-flyway-baseline.md](./phase8-flyway-baseline.md)를 따른다.
