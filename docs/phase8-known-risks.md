@@ -2,162 +2,207 @@
 
 ## 1. 결론
 
-Phase 8의 핵심 리스크는 기능 구현 부족보다 운영 환경 전환에서 발생한다. 특히 DB schema 자동 생성, CORS 하드코딩, secret 관리, SSE proxy 설정, Redis 운영 방식이 배포 차단 요인이다.
+Phase 8의 주요 위험은 기능 구현보다 운영 환경 전환에서 발생한다.
 
-## 2. P0 배포 차단 리스크
+현재 확인된 핵심 위험은 다음이다.
+
+- `application.yml`의 `ddl-auto=create`
+- `SecurityConfig`의 CORS localhost 하드코딩
+- `spring.profiles.include: secret` 기본 포함
+- devtools/p6spy 운영 artifact 포함 가능성
+- 메모리 기반 SSE emitter의 다중 인스턴스 한계
+- production에서 `/dev` 검증 UI 노출 위험
+- EC2 Docker Redis + AOF 운영 책임
+
+이번 Phase 8-1은 위험을 문서화만 한다. 코드/설정 변경은 후속 Phase에서 수행한다.
+
+## 2. P0 배포 차단 위험
 
 ### `ddl-auto=create`
 
-현재 `src/main/resources/application.yml`에 `spring.jpa.hibernate.ddl-auto: create`가 설정되어 있다.
+현재 `application.yml`의 `spring.jpa.hibernate.ddl-auto=create`는 운영 위험이다.
 
-운영 또는 prodlike에서 이 설정이 적용되면 DB schema와 데이터가 손상될 수 있다.
+위험:
 
-대응:
-
-- Phase 8-1에서 profile별 설정을 분리한다.
-- prod/prodlike에서는 `create/update`를 금지한다.
-- Phase 8-2에서 Flyway baseline을 도입한다.
-
-### Secret profile 의존
-
-현재 `spring.profiles.include: secret`가 기본 application 설정에 포함되어 있다.
-
-운영 secret 파일을 직접 배포하거나 로컬 secret 구조에 의존하면 환경 재현성과 보안이 약해진다.
+- 운영 DB schema가 재생성될 수 있음
+- 기존 데이터 손실 가능
+- RDS MySQL 운영 전환 시 치명적인 장애로 이어질 수 있음
 
 대응:
 
-- 운영 secret은 파일 커밋이 아니라 환경변수, EC2 secret 파일 주입, AWS Secrets Manager 중 하나로 관리한다.
-- 문서와 예시에는 placeholder만 사용한다.
+- Phase 8-2에서 profile 분리
+- prod/prodlike에서 `ddl-auto=create/update` 금지
+- Phase 8-3에서 Flyway baseline 기준으로 schema 관리
+
+이번 Step에서 하지 않는 작업:
+
+- `application.yml` 수정
+- `ddl-auto` 값 변경
+- Flyway migration 작성
 
 ### CORS localhost 하드코딩
 
-현재 `SecurityConfig`의 CORS origin은 `http://localhost:5173`만 허용한다.
-
-운영 프론트 `https://neomango.kr`, `https://www.neomango.kr`에서 API 호출과 SSE 연결이 실패할 수 있다.
-
-대응:
-
-- CORS origin을 환경별 property로 분리한다.
-- prod에서는 `https://neomango.kr`, `https://www.neomango.kr`만 허용한다.
-
-## 3. P1 운영 안정성 리스크
-
-### SSE reverse proxy 설정
-
-SSE는 일반 REST API보다 proxy 설정에 민감하다.
+현재 `SecurityConfig`의 CORS origin이 `http://localhost:5173` 기준으로 하드코딩되어 있다.
 
 위험:
 
-- Nginx buffering으로 이벤트가 즉시 전달되지 않을 수 있음
-- proxy idle timeout이 `SseEmitter` timeout보다 짧으면 연결이 예기치 않게 끊김
-- HTTPS/CORS/Auth 조합에서 preflight 또는 stream 연결 실패 가능
+- `https://neomango.kr`에서 backend API 호출 실패
+- `https://www.neomango.kr` redirect 전/후 요청 정책 불일치
+- SSE stream 연결 실패
 
 대응:
 
-- Nginx location별 SSE 설정을 분리한다.
-- `proxy_buffering off`를 검증한다.
-- 실제 운영 도메인으로 장시간 연결 테스트를 수행한다.
+- Phase 8-2에서 CORS allowed origins를 profile/env property로 전환
+- prod에서는 `https://neomango.kr`, `https://www.neomango.kr`만 허용
+- local origin은 local profile에서만 허용
 
-### 메모리 기반 SSE emitter 저장소
+이번 Step에서 하지 않는 작업:
 
-현재 SSE connection은 애플리케이션 메모리의 `ConcurrentHashMap`에 저장된다.
+- `SecurityConfig` 수정
+- CORS property 전환
+
+### secret profile 기본 포함
+
+현재 `spring.profiles.include: secret` 기본 포함은 운영 위험이다.
 
 위험:
 
-- EC2 인스턴스가 2대 이상이면 다른 인스턴스에 연결된 사용자에게 이벤트가 전달되지 않음
-- 인스턴스 재시작 시 모든 SSE connection이 끊김
+- 운영 실행이 특정 로컬 secret 파일 구조에 의존할 수 있음
+- secret 주입 경로가 명확하지 않으면 재현성과 보안이 약해짐
+- secret 파일을 실수로 배포하거나 커밋할 위험이 증가
 
 대응:
 
-- 초기 운영은 단일 인스턴스 MVP로 제한할 수 있다.
-- 다중 인스턴스 전환 전 Redis Pub/Sub 또는 메시지 브로커를 도입한다.
+- Phase 8-2에서 profile/env/secret 주입 전략 분리
+- 운영 secret은 Git에 포함하지 않음
+- 문서와 예시에는 placeholder만 사용
 
-### Redis 운영 방식
+이번 Step에서 하지 않는 작업:
 
-ElastiCache를 쓰지 않고 EC2 Docker Redis를 쓰면 운영 책임이 커진다.
+- secret 파일 조회
+- secret 파일 출력
+- secret 파일 생성
+
+## 3. P1 운영 안정성 위험
+
+### devtools/p6spy 운영 포함 가능성
+
+devtools/p6spy가 `implementation` scope라면 운영 artifact에 포함될 위험이 있다.
+
+위험:
+
+- 운영 성능 저하
+- SQL parameter 또는 민감 정보 로그 노출
+- 운영 build에 개발 도구 포함
+
+대응:
+
+- Phase 8-2에서 scope/profile 전략 정리
+- 운영 profile에서 SQL parameter 로그 제한
+- prod build 결과물에 포함되는 dependency 확인
+
+이번 Step에서 하지 않는 작업:
+
+- `build.gradle` 수정
+- dependency scope 변경
+
+### 메모리 기반 SSE emitter
+
+현재 SSE emitter가 애플리케이션 메모리 기반이면 다중 인스턴스에서 한계가 있다.
+
+단일 인스턴스 기준:
+
+- Phase 8 1차 배포에서는 허용 가능
+- connection이 같은 backend instance에 있으므로 실시간 전송 구조가 단순함
+
+다중 인스턴스 기준:
+
+- 다른 인스턴스에 연결된 사용자에게 이벤트를 전달할 수 없음
+- Redis Pub/Sub 또는 메시지 브로커가 필요
+- load balancer sticky session만으로 event fan-out 문제를 해결할 수 없음
+
+대응:
+
+- 1차 배포는 단일 backend instance로 제한
+- 다중 인스턴스 전환 시 Redis Pub/Sub 또는 broker 재검토
+- MSA는 Phase 8 범위에서 제외
+
+### `/dev` 검증 UI 노출
+
+production build에서 `/dev` 검증 UI가 노출되면 보안/신뢰성 위험이다.
+
+위험:
+
+- 내부 검증용 API 호출 흐름 노출
+- 사용자에게 미완성 기능 또는 debug 화면 노출
+- 운영 신뢰도 저하
+
+대응:
+
+- 현재 프론트엔드에서는 이미 `/dev` 라우팅을 삭제한 상태로 본다.
+- production build에서 `/dev` route가 존재하지 않는지 검증한다.
+- 코드가 남아 있더라도 production routing/build에서 노출되면 안 된다.
+
+## 4. P2 인프라 운영 위험
+
+### EC2 Docker Redis + AOF
+
+Phase 8 1차 배포는 비용을 고려해 EC2 Docker Redis + AOF 방식을 선택한다.
+
+운영 권장안:
+
+- ElastiCache Redis
+
+1차 비용 절감안:
+
+- EC2 Docker Redis + AOF
 
 위험:
 
 - AOF/volume 설정 누락 시 Refresh Token 유실
-- Redis 장애 시 전체 사용자 재로그인 필요
-- backup/restore 절차 부재
+- EC2 장애 시 Redis 복구 책임이 개발자에게 있음
+- backup/restore 검증이 없으면 장애 대응이 어려움
+- 알림/SSE 보조 인프라로 사용할 경우 장애 영향 범위가 커질 수 있음
 
 대응:
 
-- 비용이 허용되면 ElastiCache를 사용한다.
-- EC2 Docker Redis를 쓰면 AOF, volume, restart policy, backup을 문서화하고 검증한다.
+- AOF 활성화
+- Redis volume 영속화
+- restart policy 명시
+- backup/restore 절차 문서화
+- 실운영 안정화 단계에서 ElastiCache Redis 전환
 
-## 4. P2 품질/운영 리스크
+### tag 기준 배포 미준수
 
-### devtools/p6spy 운영 포함
-
-현재 `build.gradle`에서 devtools와 p6spy가 `implementation` scope에 있다.
+main 최신 커밋을 직접 운영 배포하면 배포 단위가 불명확해진다.
 
 위험:
 
-- 운영 artifact에 개발 도구가 포함될 수 있음
-- SQL 로그가 과도하게 출력되거나 민감 정보 노출 가능
-- 성능 측정이 왜곡될 수 있음
+- 어떤 코드가 운영에 배포됐는지 추적하기 어려움
+- rollback 기준이 불명확함
+- release branch 리허설 결과와 운영 배포 코드가 달라질 수 있음
 
 대응:
 
-- Phase 8-1 또는 8-3에서 scope/profile을 재정리한다.
-- 운영 profile에서는 SQL parameter 로그를 제한한다.
+- production deploy는 `v1.0.0` 같은 immutable tag 기준으로 수행
+- `release/v1.0`에서 prod-like 리허설 후 main 병합
+- main 병합 후 tag 생성
+- 같은 tag는 변경하지 않음
 
-### `.env.example` 부재
+## 5. 이번 Step에서 하지 않는 작업
 
-현재 저장소에서 `.env.example`은 확인되지 않았다.
+Phase 8-1에서는 다음 작업을 하지 않는다.
 
-위험:
-
-- 신규 환경 구성 시 필요한 변수 목록이 불명확함
-- 운영 도메인/CORS/SSE URL 기준이 코드와 문서 사이에서 어긋날 수 있음
-
-대응:
-
-- 실제 `.env`나 운영 secret은 만들지 않는다.
-- Phase 8-1에서 placeholder 기반 `.env.example` 또는 `docs/env.example.md`를 추가한다.
-
-예시 placeholder:
-
-```text
-FRONTEND_BASE_URL=https://neomango.kr
-FRONTEND_WWW_URL=https://www.neomango.kr
-BACKEND_API_URL=https://api.neomango.kr
-SSE_URL=https://api.neomango.kr/api/notifications/stream
-CORS_ALLOWED_ORIGINS=https://neomango.kr,https://www.neomango.kr
-SPRING_PROFILES_ACTIVE=prod
-DB_HOST=<rds-endpoint>
-DB_PORT=3306
-DB_NAME=<database-name>
-DB_USERNAME=<database-user>
-DB_PASSWORD=<database-password>
-JWT_SECRET=<jwt-secret>
-REDIS_HOST=<redis-host>
-REDIS_PORT=6379
-```
-
-### GitHub Actions 부재
-
-현재 `.github/workflows`는 확인되지 않았다.
-
-위험:
-
-- PR마다 test/lint/build 결과가 자동 검증되지 않음
-- 배포 직전 회귀를 수동으로만 발견할 수 있음
-
-대응:
-
-- Phase 8-5에서 backend test workflow를 먼저 추가한다.
-- frontend 위치가 확정되면 lint/build workflow를 추가한다.
-
-## 5. Phase 8-1 작업 목록
-
-1. `application-local.yml`, `application-prodlike.yml`, `application-prod.yml` 분리 설계
-2. prod/prodlike `ddl-auto=create/update` 제거
-3. CORS allowed origins를 property 기반으로 전환
-4. 운영 도메인 placeholder 기반 `.env.example` 필요 여부 최종 결정
-5. devtools/p6spy 운영 제외 전략 결정
-6. SSE Nginx 설정 초안 작성
-7. Flyway baseline 대상 entity/schema 목록 산출
+- 운영 코드 수정
+- `application.yml` 수정
+- `SecurityConfig` 수정
+- Dockerfile 작성
+- Docker Compose 작성
+- GitHub Actions workflow 작성
+- `application-local.yml`, `application-prodlike.yml`, `application-prod.yml` 생성
+- Flyway migration 파일 작성
+- `ddl-auto` 수정
+- CORS property 전환
+- Nginx 설정 작성
+- secret 파일 조회 또는 출력
 

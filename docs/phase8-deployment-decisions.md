@@ -2,130 +2,226 @@
 
 ## 1. 결론
 
-Phase 8 배포 기준은 운영 안정성을 우선한다. 비용 때문에 일부 AWS managed service를 줄일 수는 있지만, DB schema와 secret, 운영 도메인, CORS, SSE 정책은 타협하지 않는다.
+Phase 8의 배포 기준은 "main 최신 커밋 직배포"가 아니라 immutable version tag 배포다.
 
-## 2. 확정 결정사항
+운영 가능한 source of truth는 `main`이고, 실제 production deploy 단위는 `v1.0.0` 같은 tag로 고정한다.
+
+기본 흐름:
+
+```text
+feature branch -> dev -> release/v1.0 -> main -> v1.0.0 tag -> production deploy
+```
+
+이번 Phase 8-1은 코드/설정 변경 없이 배포 방식과 브랜치/릴리즈 전략만 문서로 확정한다.
+
+## 2. 확정 배포 방식
 
 | 항목 | 결정 |
 | --- | --- |
 | 서비스 도메인 | `neomango.kr` |
-| 프론트 기본 URL | `https://neomango.kr` |
-| 프론트 www URL | `https://www.neomango.kr` |
-| 백엔드 API URL | `https://api.neomango.kr` |
+| canonical frontend domain | `https://neomango.kr` |
+| www frontend domain | `https://www.neomango.kr` -> `https://neomango.kr` redirect |
+| Backend API domain | `https://api.neomango.kr` |
 | SSE URL | `https://api.neomango.kr/api/notifications/stream` |
-| Frontend 목표 | S3 + CloudFront |
-| Backend 목표 | EC2 Docker + Nginx |
-| DB 목표 | RDS MySQL |
-| Redis 권장 | ElastiCache |
-| Redis 비용 대안 | EC2 Docker Redis + AOF |
-| staging | 상시 운영하지 않음 |
-| staging 대체 | 로컬 Docker prod-like 검증 |
-| CI/CD 1차 목표 | test/lint/build 검증 자동화 |
-| 자동 배포 | Phase 8 1차 범위 제외 |
+| Frontend | S3 + CloudFront |
+| Backend | EC2 + Docker + Nginx |
+| DB | RDS MySQL |
+| Redis 운영 권장안 | ElastiCache Redis |
+| Redis 1차 비용 절감안 | EC2 Docker Redis + AOF |
+| 1차 서버 구조 | Backend 단일 인스턴스 |
+| MSA | Phase 8 범위 아님 |
+| CI/CD | 검증 자동화까지만 수행, 자동 배포 제외 |
 
-## 3. 금지사항
+## 3. 브랜치/릴리즈 전략
 
-prod/prodlike에서 금지:
+Phase 8 세부 작업은 feature branch에서 수행한다.
 
-- `spring.jpa.hibernate.ddl-auto=create`
-- `spring.jpa.hibernate.ddl-auto=update`
-- 운영 secret을 Git에 커밋
-- 운영 비밀번호/JWT secret/DB password를 문서에 실제 값으로 기록
-- `/dev` 검증 UI를 production build에 노출
-- CORS `*` 허용과 credentials 동시 사용
-- 운영 로그에 Access Token, Refresh Token, DB password, 개인정보 출력
-
-## 4. DB schema 결정
-
-운영 DB schema는 Flyway baseline으로 관리한다.
-
-단순한 방법:
-
-- JPA `ddl-auto=create/update`로 운영 schema를 자동 반영한다.
-
-실무적인 방법:
-
-- 현재 entity 기준으로 baseline migration을 작성한다.
-- 운영 DB에는 migration으로만 schema 변경을 반영한다.
-- JPA ddl-auto는 prod/prodlike에서 `validate` 또는 `none` 계열로 제한한다.
-
-추천안:
-
-- Phase 8-2에서 Flyway dependency와 baseline SQL을 추가한다.
-- 기존 개발 DB와 운영 신규 DB의 기준점을 분리한다.
-- 운영 배포 전 entity와 baseline schema의 차이를 검증한다.
-
-## 5. Redis 결정
-
-권장안은 ElastiCache Redis다.
-
-비용상 EC2 Docker Redis를 사용할 경우 다음 조건을 문서화해야 한다.
-
-- AOF 활성화
-- Redis 데이터 볼륨 영속화
-- EC2 재시작 시 Redis 자동 복구
-- backup/restore 절차
-- Refresh Token 유실 시 사용자 재로그인 정책
-
-Refresh Token 저장소이므로 Redis 장애는 인증 UX에 직접 영향을 준다.
-
-## 6. SSE 결정
-
-SSE는 Phase 8에서도 유지한다.
-
-단일 인스턴스 MVP:
-
-- 현재 메모리 기반 emitter 저장소를 유지할 수 있다.
-- EC2 1대 기준으로는 구조가 단순하다.
-
-다중 인스턴스 확장:
-
-- 현재 구조만으로는 다른 인스턴스에 연결된 사용자에게 실시간 이벤트를 전달할 수 없다.
-- Redis Pub/Sub 또는 메시지 브로커를 도입해야 한다.
-
-프론트 인증 방식:
-
-- 기본 `EventSource`는 Authorization header 제어가 어렵다.
-- `@microsoft/fetch-event-source` 등 header 전달 가능한 방식을 우선 검토한다.
-- query string token 방식은 로그/브라우저 히스토리/프록시 노출 위험이 있으므로 기본안으로 두지 않는다.
-
-## 7. CORS 결정
-
-운영 허용 origin:
+확정 흐름:
 
 ```text
-https://neomango.kr
-https://www.neomango.kr
+feature branch
+  -> dev 통합
+  -> release/v1.0 생성
+  -> release 브랜치에서 prod-like 리허설
+  -> main 병합
+  -> v1.0.0 tag 생성
+  -> tag 기준 production deploy
 ```
 
-로컬 허용 origin:
+정책:
 
-```text
-http://localhost:5173
-```
+- `main`은 운영 배포 가능한 source of truth다.
+- 운영 서버는 `main`의 임의 최신 커밋이 아니라 immutable tag를 기준으로 배포한다.
+- `release/v1.0`에서는 기능 추가보다 안정화, prod-like 리허설, rollback 검증에 집중한다.
+- `v1.0.0` tag 생성 후에는 같은 tag의 내용을 변경하지 않는다.
+- 긴급 수정은 새 patch tag를 만든다. 예: `v1.0.1`
 
-결정:
+세부 정책은 [phase8-release-strategy.md](./phase8-release-strategy.md)를 기준으로 한다.
 
-- 운영 origin과 로컬 origin을 같은 profile에 섞지 않는다.
-- CORS 설정은 환경별 property로 분리한다.
-- 현재 코드의 `http://localhost:5173` 하드코딩은 Phase 8-1에서 수정 대상이다.
+## 4. main 브랜치 정책
 
-## 8. CI/CD 결정
+`main`에 포함 가능:
 
-1차 CI/CD는 배포 자동화가 아니라 검증 자동화다.
+- 운영 실행에 안전한 source code
+- local/test/prod profile 구조
+- placeholder 기반 예시 설정 문서
+- 테스트 코드
+- 로컬 개발 편의를 위한 코드 또는 설정
+- prod build에서 비활성화되는 검증 코드
 
-Backend:
+`main`에 포함하면 안 되는 것:
 
-```text
-./gradlew.bat test
-```
+- secret 파일
+- 실제 운영 비밀번호
+- 실제 JWT secret
+- 실제 DB password
+- 실제 Redis password
+- 운영 credential이 포함된 `.env`
+- production build 또는 운영 라우팅에서 노출되는 `/dev` 검증 UI
 
-Frontend:
+중요한 기준:
 
-```text
-npm run lint
-npm run build
-```
+- main에서 local/test 코드를 무조건 삭제하는 전략은 쓰지 않는다.
+- 대신 profile/env/secret/build 설정으로 운영에서 비활성화한다.
+- `/dev` 검증 UI는 코드가 존재하더라도 production build 또는 운영 라우팅에서 노출되면 안 된다.
 
-현재 저장소에서는 frontend 디렉터리가 확인되지 않았으므로, frontend workflow는 실제 프론트 저장소/디렉터리 위치가 확정된 뒤 작성한다.
+## 5. Frontend 결정
+
+배포 방식:
+
+- S3 + CloudFront
+- `https://neomango.kr`를 canonical frontend domain으로 사용
+- `https://www.neomango.kr`는 `https://neomango.kr`로 redirect
+
+운영 기준:
+
+- production build에서 `/dev` route를 노출하지 않는다.
+- 현재 프론트엔드에서는 이미 `/dev` 라우팅을 삭제한 상태로 본다.
+- Legacy 검증 UI가 운영 환경에서 노출되면 보안/신뢰성 위험으로 판단한다.
+
+이번 Step에서 하지 않는 작업:
+
+- S3 bucket 생성
+- CloudFront distribution 생성
+- DNS/HTTPS 연결
+- frontend workflow 작성
+
+## 6. Backend 결정
+
+배포 방식:
+
+- EC2 + Docker + Nginx
+- Backend API domain은 `https://api.neomango.kr`로 분리
+- SSE 운영 URL은 `https://api.neomango.kr/api/notifications/stream`
+
+1차 서버 구조:
+
+- Backend는 단일 인스턴스 기준으로 배포한다.
+- 현재 메모리 기반 `SseEmitter` 구조는 단일 인스턴스 전제에서는 허용한다.
+- 다중 인스턴스 전환 시 Redis Pub/Sub 또는 메시지 브로커를 재검토한다.
+- MSA는 Phase 8 범위가 아니다. 추후 고도화 과정에서 실제 필요가 확인될 때 검토한다.
+
+이번 Step에서 하지 않는 작업:
+
+- Dockerfile 작성
+- Docker Compose 작성
+- Nginx 설정 작성
+- application profile 파일 생성
+- CORS property 전환
+
+## 7. DB 결정
+
+배포 방식:
+
+- RDS MySQL 사용
+- 운영 DB 스키마 초기화와 변경 이력은 Flyway 기준으로 관리
+- prod/prodlike 환경에서 `ddl-auto=create`와 `ddl-auto=update` 금지
+
+권장 운영 기준:
+
+- 운영 DB schema 변경은 migration 파일로만 반영한다.
+- 운영 profile에서는 JPA schema 자동 변경을 허용하지 않는다.
+- Flyway baseline은 Phase 8-2 이후 작업에서 설계한다.
+
+이번 Step에서 하지 않는 작업:
+
+- Flyway dependency 추가
+- migration 파일 작성
+- `ddl-auto` 설정 변경
+- DB schema 수정
+
+## 8. Redis 결정
+
+운영 권장안:
+
+- ElastiCache Redis
+
+1차 비용 절감안:
+
+- EC2 Docker Redis + AOF
+
+Phase 8 1차 배포는 비용을 고려해 EC2 Docker Redis + AOF 방식으로 간다.
+
+사용 목적:
+
+- Refresh Token 저장
+- 알림/SSE 관련 보조 인프라
+
+주의:
+
+- EC2 Docker Redis + AOF는 비용상 선택한 1차 배포안이다.
+- 관리형 Redis 대비 backup, restore, 장애 대응, restart policy 책임이 크다.
+- 실운영 안정화 단계에서 ElastiCache Redis로 전환한다.
+
+## 9. ADMIN bootstrap 결정
+
+초기 ADMIN은 one-time runner 또는 command 방식으로 생성한다.
+
+정책:
+
+- 일반 회원가입 API에서 `role=ADMIN` 주입은 허용하지 않는다.
+- DB 직접 insert는 원칙적으로 사용하지 않는다.
+- bootstrap command는 재실행 안전성, 감사 가능성, secret 노출 방지를 고려해야 한다.
+
+이번 Step에서 하지 않는 작업:
+
+- ADMIN bootstrap 구현
+- command runner 구현
+- 운영 ADMIN 계정 생성
+
+## 10. CI/CD 결정
+
+Phase 8의 GitHub Actions는 자동 배포를 하지 않는다.
+
+포함 범위:
+
+- backend test
+- frontend lint/build
+- 가능하면 Docker image build 검증
+
+제외 범위:
+
+- EC2 자동 배포
+- production 서버 SSH 배포
+- 운영 DB migration 자동 실행
+- CloudFront invalidation 자동화
+
+EC2 자동 배포는 Phase 8 이후 고도화 대상으로 둔다.
+
+## 11. 이번 Step에서 하지 않는 작업
+
+Phase 8-1에서는 다음 작업을 하지 않는다.
+
+- 운영 코드 수정
+- `application.yml` 수정
+- `SecurityConfig` 수정
+- Dockerfile 작성
+- Docker Compose 작성
+- GitHub Actions workflow 작성
+- `application-local.yml`, `application-prodlike.yml`, `application-prod.yml` 생성
+- Flyway migration 파일 작성
+- `ddl-auto` 수정
+- CORS property 전환
+- Nginx 설정 작성
+- secret 파일 조회 또는 출력
 
