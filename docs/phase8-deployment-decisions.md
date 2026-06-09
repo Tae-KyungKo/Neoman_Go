@@ -225,3 +225,38 @@ Phase 8-1에서는 다음 작업을 하지 않는다.
 - Nginx 설정 작성
 - secret 파일 조회 또는 출력
 
+## 12. Phase 8-2 Profile/Env/Secret 결정
+
+Phase 8-2에서는 Spring Boot 설정 구조를 운영 배포 가능한 형태로 분리한다.
+
+Profile 파일 구조:
+
+```text
+src/main/resources/application.yml
+src/main/resources/application-local.yml
+src/main/resources/application-test.yml
+src/main/resources/application-prodlike.yml
+src/main/resources/application-prod.yml
+src/main/resources/application-secret.yml
+```
+
+정책:
+
+- `application.yml`은 공통 기본값만 가진다.
+- `application.yml`에서 `spring.profiles.include: secret` 기본 포함을 제거한다.
+- `application-local.yml`에서만 `optional:classpath:application-secret.yml`을 import한다.
+- `application-secret.yml`은 실제 secret 파일로 간주하고 Git 추적 금지 대상으로 유지한다.
+- prod/prodlike는 secret yml이 아니라 env 기반으로 값을 주입한다.
+- prod/prodlike에서 `ddl-auto=create/update`는 금지하고 `validate`를 사용한다.
+- CORS origin은 `app.cors.allowed-origins` property로 분리한다.
+- devtools/p6spy는 운영 artifact에 포함되지 않도록 개발 전용 scope로 분리한다.
+- `.env.example`과 `docs/env.example.md`에는 placeholder만 기록한다.
+
+이번 Step에서 하지 않는 작업:
+
+- Flyway migration 작성
+- Dockerfile 작성
+- Docker Compose 작성
+- Nginx 설정 작성
+- GitHub Actions workflow 작성
+- 실제 운영 secret 생성 또는 조회

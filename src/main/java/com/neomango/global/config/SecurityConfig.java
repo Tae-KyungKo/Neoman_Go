@@ -2,6 +2,7 @@ package com.neomango.global.config;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -30,6 +31,18 @@ public class SecurityConfig {
 	private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 	private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
+	@Value("${app.cors.allowed-origins}")
+	private List<String> allowedOrigins;
+
+	@Value("${app.cors.allowed-methods:GET,POST,PUT,PATCH,DELETE,OPTIONS}")
+	private List<String> allowedMethods;
+
+	@Value("${app.cors.allowed-headers:Authorization,Content-Type}")
+	private List<String> allowedHeaders;
+
+	@Value("${app.cors.allow-credentials:true}")
+	private boolean allowCredentials;
+
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		return http
@@ -57,10 +70,10 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-		configuration.setAllowedHeaders(List.of("*"));
-		configuration.setAllowCredentials(true);
+		configuration.setAllowedOrigins(allowedOrigins);
+		configuration.setAllowedMethods(allowedMethods);
+		configuration.setAllowedHeaders(allowedHeaders);
+		configuration.setAllowCredentials(allowCredentials);
 
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);

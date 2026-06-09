@@ -145,3 +145,25 @@ Phase 8-1에서는 다음 작업을 하지 않는다.
 - Nginx 설정 작성
 - secret 파일 조회 또는 출력
 
+## 9. Phase 8-2 완료 기준
+
+Phase 8-2에서는 profile/env/secret 분리와 CORS property 전환까지만 수행한다.
+
+완료 기준:
+
+- `spring.profiles.include: secret` 기본 포함 제거
+- local profile에서만 `application-secret.yml` 선택 import
+- prod/prodlike env 기반 DB/Redis/JWT 설정
+- prod/prodlike `ddl-auto=validate`
+- CORS origin property 기반 전환
+- devtools/p6spy 운영 artifact 제외
+- `.env.example`, `docs/env.example.md` placeholder 문서 추가
+
+Phase 8-2에서 하지 않는 작업:
+
+- Flyway baseline 작성
+- Dockerfile 작성
+- Docker Compose 작성
+- Nginx 설정 작성
+- GitHub Actions workflow 작성
+- 실제 운영 도메인 CORS/SSE 검증

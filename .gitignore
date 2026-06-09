@@ -25,6 +25,10 @@ replay_pid*
 
 # Custom Secret Files
 application-secret.yml
+.env
+.env.local
+.env.prod
+.env.production
 .gradle/
 build/
 out/
