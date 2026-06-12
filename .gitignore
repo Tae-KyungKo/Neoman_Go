@@ -28,6 +28,7 @@ application-secret.yml
 .env
 .env.local
 .env.prod
+.env.prodlike
 .env.production
 .gradle/
 build/

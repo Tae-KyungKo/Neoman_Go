@@ -125,3 +125,15 @@ Phase 8-4에서는 다음 작업을 하지 않는다.
 - SseEmitter 구조 변경
 - ADMIN bootstrap 구현
 - 운영 secret 생성, 조회, 출력
+## 6. Phase 8-5 Prod-like Docker Risks
+
+Prod-like compose는 운영 배포 자체가 아니라 로컬 검증 환경이다. 이 차이를 혼동하면 운영 보안 기준을 잘못 판단할 수 있다.
+
+주의할 위험:
+
+- backend `8080`과 mysql `3307`은 로컬 검증 편의를 위한 host port 노출이다.
+- redis는 host port를 노출하지 않아야 한다.
+- `.env.prodlike`에 실제 운영 credential을 넣으면 안 된다.
+- compose `depends_on`은 애플리케이션 레벨 준비 완료를 완전히 보장하지 않는다. 이번 단계에서는 MySQL/Redis healthcheck로 1차 readiness만 보완한다.
+- Actuator health endpoint는 아직 없으므로 backend healthcheck는 Phase 8-10에서 별도로 검토한다.
+- `docker compose down -v`는 named volume을 삭제하므로 운영 환경에서 사용하면 안 된다.

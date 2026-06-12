@@ -203,3 +203,19 @@ Phase 8의 GitHub Actions는 자동 배포를 하지 않는다.
 - CloudFront invalidation 자동화
 
 EC2 자동 배포는 Phase 8 이후 고도화 대상으로 둔다.
+## 12. Phase 8-5 Prod-like Docker Decision
+
+Phase 8-5의 Docker Compose는 실제 운영 배포 구성이 아니라 로컬 운영 유사 검증 구성이다.
+
+- 포함 서비스: backend, mysql, redis
+- 제외 서비스: frontend, nginx, certbot, cloudfront, s3, GitHub Actions
+- backend host port: `8080`
+- mysql host port: `3307`
+- redis host port: 없음
+- backend profile: `prodlike`
+- database: `neomango_prodlike`
+- Redis persistence: AOF enabled, `appendfsync everysec`
+- Redis eviction: `noeviction`
+- secret 주입: `.env.prodlike` 로컬 파일 또는 동등한 환경변수
+
+`.env.prodlike.example`은 placeholder만 포함하며 실제 credential을 기록하지 않는다. 실제 `.env.prodlike`은 Git에 포함하지 않는다.

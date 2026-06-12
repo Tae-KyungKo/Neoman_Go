@@ -182,3 +182,17 @@ Phase 8에서는 down migration 파일을 작성하지 않는다.
 - 로컬 검증용 DB 사용자를 별도로 생성한 뒤 같은 세션의 환경변수로만 credential을 주입해 재검증했다.
 - 해당 credential은 운영 credential이 아니며 문서에 기록하지 않는다.
 
+## 10. Phase 8-5 Compose Verification
+
+Phase 8-5 runs Flyway and Hibernate validation through `docker-compose.prodlike.yml`.
+
+Verification target:
+
+- MySQL service uses MySQL 8.
+- Database name is `neomango_prodlike`.
+- MySQL charset/collation is `utf8mb4` / `utf8mb4_0900_ai_ci`.
+- Backend uses the `prodlike` profile.
+- Flyway applies `V1__baseline_schema.sql`.
+- Hibernate `ddl-auto=validate` succeeds after migration.
+
+The real `.env.prodlike` must contain only local prod-like verification values, not production credentials.

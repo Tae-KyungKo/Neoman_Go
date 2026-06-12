@@ -151,3 +151,15 @@ Phase 8-4에서는 다음 작업을 하지 않는다.
 - 운영 Redis password 생성 또는 기록
 
 Docker Compose에 Redis AOF, password, named volume, network binding, restart policy를 반영하는 작업은 Phase 8-5 범위다.
+## 11. Phase 8-5 Compose Reflection
+
+`docker-compose.prodlike.yml` reflects the Phase 8 Redis policy as follows.
+
+- Redis has no host port mapping.
+- Backend accesses Redis by the compose service name `redis`.
+- `REDIS_PASSWORD` is required through the prod-like env file.
+- AOF is enabled with `appendfsync everysec`.
+- `maxmemory-policy noeviction` is set.
+- Redis data is stored in the Docker named volume `neomango_redis_prodlike_data`.
+
+This does not introduce Redis Pub/Sub, cache, distributed lock, or session storage.

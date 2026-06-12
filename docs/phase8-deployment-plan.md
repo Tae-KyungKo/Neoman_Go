@@ -145,3 +145,15 @@ Phase 8-4에서 하지 않는 작업:
 - Redis AOF, named volume, restart policy, `noeviction` 설정을 반영한다.
 - Redis volume backup/restore 리허설 항목을 문서화한다.
 - prod-like compose 실행 후 `compileJava`, `test`, application boot 검증을 다시 수행한다.
+## Phase 8-5 Prod-like Docker 구성
+
+Phase 8-5에서는 로컬 prod-like 검증을 위해 `Dockerfile`과 `docker-compose.prodlike.yml`을 추가한다.
+
+- compose 대상은 backend, mysql, redis 3개 서비스로 제한한다.
+- backend는 검증 편의를 위해 `8080:8080`으로 노출한다.
+- mysql은 로컬 충돌 방지를 위해 `3307:3306`으로 노출한다.
+- redis는 host port를 노출하지 않고 compose 내부 네트워크에서만 접근한다.
+- prodlike profile은 Flyway enabled, Hibernate `ddl-auto=validate` 기준을 유지한다.
+- Nginx, GitHub Actions, ADMIN bootstrap은 이번 단계 범위가 아니다.
+
+세부 실행 방법과 cleanup 기준은 [phase8-prodlike-docker.md](./phase8-prodlike-docker.md)를 따른다.
