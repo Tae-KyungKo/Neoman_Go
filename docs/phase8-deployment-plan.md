@@ -157,3 +157,17 @@ Phase 8-5에서는 로컬 prod-like 검증을 위해 `Dockerfile`과 `docker-com
 - Nginx, GitHub Actions, ADMIN bootstrap은 이번 단계 범위가 아니다.
 
 세부 실행 방법과 cleanup 기준은 [phase8-prodlike-docker.md](./phase8-prodlike-docker.md)를 따른다.
+## Phase 8-6 Nginx/CORS/SSE 운영 검증
+
+Phase 8-6에서는 prod-like compose에 Nginx reverse proxy를 추가하고, Nginx 경유 API, CORS preflight, Authorization header 전달, SSE endpoint 동작을 검증한다.
+
+- prod-like Nginx는 로컬 검증용이며 `8081:80`으로 노출한다.
+- 일반 API와 `/api/notifications/stream` SSE proxy location을 분리한다.
+- production TLS/443/certbot/DNS 연결은 실제 적용하지 않는다.
+- production CORS origin은 `https://neomango.kr`이고 `https://www.neomango.kr`은 redirect 대상으로 본다.
+- CORS credentials는 `false`로 둔다.
+- 현재 인증 계약은 JSON token 응답과 `Authorization: Bearer` header 기반이다.
+- SSE access token query parameter 전달은 금지한다.
+- native `EventSource` 단독 사용은 현재 인증 정책과 맞지 않으므로 fetch 기반 SSE client 사용을 전제로 한다.
+
+세부 설정과 검증 절차는 [phase8-nginx-cors-sse.md](./phase8-nginx-cors-sse.md)를 따른다.

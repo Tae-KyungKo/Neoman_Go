@@ -68,6 +68,16 @@ services:
     ports:
       - "8080:8080"
 
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nginx/prodlike/default.conf:/etc/nginx/conf.d/default.conf:ro
+
 volumes:
   neomango_mysql_prodlike_data:
   neomango_redis_prodlike_data:

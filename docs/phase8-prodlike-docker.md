@@ -146,3 +146,17 @@ Observed warnings:
 
 - Flyway still warns that MySQL 8.4 is newer than the latest MySQL version tested by the current Flyway version. Migration and validation passed, but production RDS MySQL minor version should be selected with Flyway support in mind.
 - Spring Boot logs a generated security password because the current Security configuration still allows default user auto-configuration to initialize. This does not block Phase 8-5 Docker verification, but it should be reviewed before production hardening.
+
+## 10. Phase 8-6 Nginx Update
+
+Phase 8-6 details are documented in [phase8-nginx-cors-sse.md](./phase8-nginx-cors-sse.md).
+
+Key decisions:
+
+- Local prod-like Nginx is exposed on `http://localhost:8081`.
+- Nginx proxies general API requests to `http://backend:8080`.
+- `/api/notifications/stream` uses a dedicated SSE proxy location.
+- Production TLS/443/certbot settings are not applied in this phase.
+- CORS credentials are `false` because the current authentication contract uses JSON tokens and `Authorization: Bearer`, not HttpOnly Cookie Refresh Token.
+- Native `EventSource` alone is not compatible with the current SSE authentication contract.
+- SSE token query parameters remain prohibited.

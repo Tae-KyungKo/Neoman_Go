@@ -12,8 +12,8 @@ app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
     allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
-    allowed-headers: Authorization,Content-Type
-    allow-credentials: true
+    allowed-headers: Authorization,Content-Type,Accept,Last-Event-ID,Cache-Control
+    allow-credentials: false
 
 jwt:
   access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY_SECONDS:1800}
