@@ -1,5 +1,19 @@
 # Phase 8 Deployment Plan
 
+## Phase 8-9 Backend GitHub Actions CI
+
+Phase 8-9 adds backend CI only.
+
+- Workflow: `.github/workflows/backend-ci.yml`
+- Triggers: pull_request and push to `dev`, `main`, `release/**`, plus `workflow_dispatch`
+- Runner: `ubuntu-latest`
+- Java: Temurin 17 with Gradle cache
+- Redis: GitHub Actions service container on `localhost:6379`, without password
+- Checks: `./gradlew compileJava`, `./gradlew test`, `docker build -t neomango-backend-ci .`
+- No automatic deploy, AWS, ECR, EC2, SSH, SCP, GitHub Secrets, Docker image push, frontend workflow, or Actuator endpoint
+
+Branch protection should be applied later in the GitHub UI after the backend CI workflow is confirmed.
+
 ## 1. 결론
 
 Phase 8의 목표는 `neomango.kr` 기준 운영 배포가 가능한 구조를 만드는 것이다.

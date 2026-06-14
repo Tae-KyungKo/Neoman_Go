@@ -1,5 +1,25 @@
 # Phase 8 Deployment Decisions
 
+## 15. Phase 8-9 Backend CI Decision
+
+Backend CI is implemented as validation only.
+
+- Workflow file: `.github/workflows/backend-ci.yml`
+- Trigger branches: `dev`, `main`, `release/**`
+- Manual trigger: `workflow_dispatch`
+- Runner: `ubuntu-latest`
+- Java: Temurin 17
+- Gradle cache: enabled
+- Redis: CI service container, exposed as `localhost:6379`, no password
+- Environment: `SPRING_PROFILES_ACTIVE=test`, `ADMIN_BOOTSTRAP_ENABLED=false`
+- Commands: `compileJava`, `test`, Docker image build
+- Docker image push: prohibited
+- GitHub Secrets: not required
+- AWS, ECR, EC2, SSH, SCP: excluded
+- Frontend workflow: excluded from this backend repository
+
+Branch protection is a GitHub UI follow-up, not a repository code change.
+
 ## 1. 결론
 
 Phase 8 운영 배포는 `main` 최신 커밋 직배포가 아니라 immutable version tag 기준으로 수행한다.

@@ -1,5 +1,24 @@
 # Phase 8 Known Risks
 
+## 8. Phase 8-9 Backend CI Risks
+
+Phase 8-9 is CI only, so deployment risk is intentionally out of scope.
+
+Remaining risks:
+
+- Branch protection is not enforced by the workflow file itself and must be configured in the GitHub UI.
+- GitHub Actions Redis is a CI-only dependency and does not validate production Redis password policy.
+- Docker build verifies image construction, but the image is not pushed or deployed.
+- The workflow does not validate EC2, AWS, ECR, SSH, TLS, DNS, or production runtime health.
+
+Mitigations:
+
+- Keep CI free of GitHub Secrets and production credentials.
+- Keep `ADMIN_BOOTSTRAP_ENABLED=false` in CI.
+- Keep Docker build as local verification only.
+- Add branch protection after the first successful CI run.
+- Keep Actuator health endpoint work in Phase 8-10.
+
 ## 1. 결론
 
 Phase 8의 주요 위험은 기능 구현보다 운영 환경 전환에서 발생한다.
