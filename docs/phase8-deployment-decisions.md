@@ -237,3 +237,21 @@ Phase 8-6 adds Nginx to the local prod-like compose stack for reverse proxy veri
 - native `EventSource` alone: not compatible with the current Authorization header policy
 
 The generated Spring Security password warning was caused by default user auto-configuration. The application now disables form login and HTTP Basic and defines a failing `UserDetailsService` to prevent default user exposure in the JWT-only API.
+
+## 14. Phase 8-7 SSE Reconnect/Fallback Decision
+
+Notification DB storage is the source of truth. SSE is a realtime helper channel.
+
+- `SseEmitter` timeout: one hour
+- Heartbeat: 30-second SSE comment
+- Multiple connections per user: allowed
+- Cleanup: completion, timeout, error, connected send failure, notification send failure, heartbeat send failure
+- Event timing: `AFTER_COMMIT`
+- `fallbackExecution`: false
+- Missed event recovery: REST notification list API
+- Server-side `Last-Event-ID` replay: not implemented in Phase 8-7
+- Outbox, Redis Pub/Sub, broker fan-out: not implemented in Phase 8-7
+- Access token query parameter: prohibited
+- Native `EventSource` alone: not compatible with the current Authorization header policy
+
+See [phase8-sse-reconnect-fallback.md](./phase8-sse-reconnect-fallback.md).

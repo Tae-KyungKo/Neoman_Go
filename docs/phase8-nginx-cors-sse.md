@@ -98,14 +98,17 @@ Frontend implementation still needs to be checked against this policy.
 
 ## 8. Heartbeat And Reconnect Policy
 
-The current backend sends an initial `connected` event and uses a one-hour `SseEmitter` timeout. It does not implement a recurring heartbeat event.
+The backend sends an initial `connected` event, uses a one-hour `SseEmitter` timeout, and sends a 30-second SSE comment heartbeat.
 
-Phase 8-7 should add or confirm an application-level heartbeat around every 30 seconds if long-lived idle connections need to survive proxy and network idleness.
+Heartbeat is connection liveness traffic, not a business notification. Heartbeat success is not logged at INFO. Failed heartbeat sends remove only the failed connection.
 
 Frontend reconnect policy:
 
 - On access token expiry or SSE `401`, refresh the token and reconnect SSE.
 - If refresh fails, route the user to login.
+- After reconnect, query the REST notification list API to recover missed notifications.
+
+Server-side `Last-Event-ID` replay, Outbox, Redis Pub/Sub, and broker-based fan-out are not implemented in Phase 8-7.
 
 ## 9. Generated Security Password Warning
 
@@ -179,7 +182,6 @@ docker compose -f docker-compose.prodlike.yml --env-file .env.prodlike down -v
 
 ## 12. Phase 8-7 Follow-up
 
-- Add or verify SSE heartbeat behavior.
-- Define frontend SSE reconnect behavior in code, not only documentation.
 - Confirm the frontend uses a fetch-based SSE client with `Authorization` header support.
+- Implement the frontend token refresh and reconnect flow.
 - Re-test authenticated SSE through Nginx with a local verification account without printing token values.

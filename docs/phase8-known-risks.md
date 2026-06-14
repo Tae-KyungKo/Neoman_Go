@@ -145,14 +145,16 @@ Remaining risks:
 
 - TLS/443/certbot/DNS are not applied yet.
 - Nginx `depends_on` does not prove backend application readiness because there is no Actuator health endpoint in this phase.
-- SSE has a one-hour emitter timeout but no recurring heartbeat event yet.
 - Authenticated SSE through Nginx still needs verification with a local test account without printing token values.
 - The frontend must use a fetch-based SSE client or another client that can attach `Authorization: Bearer`; native `EventSource` alone does not satisfy the current auth policy.
 - If CORS origins are widened beyond `https://neomango.kr` in production, the decision must be reviewed explicitly. Wildcard production origins are prohibited.
+- SSE is still in-memory and single-backend-instance scoped. Multi-instance delivery needs Redis Pub/Sub, a broker, or another fan-out design later.
+- Server-side `Last-Event-ID` replay is not implemented. Clients must recover missed notifications through the REST notification list API after reconnect.
 
 Mitigations:
 
 - Keep CORS credentials `false` while the project uses JSON tokens instead of HttpOnly Cookie Refresh Token.
 - Keep SSE token query parameters prohibited.
-- Add heartbeat and reconnect behavior in Phase 8-7.
+- Keep the 30-second backend heartbeat enabled.
+- Implement frontend reconnect behavior with token refresh.
 - Move Actuator health hardening to Phase 8-10.

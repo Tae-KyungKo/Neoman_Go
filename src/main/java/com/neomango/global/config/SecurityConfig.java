@@ -23,6 +23,7 @@ import com.neomango.auth.jwt.JwtAuthenticationFilter;
 import com.neomango.global.security.CustomAccessDeniedHandler;
 import com.neomango.global.security.CustomAuthenticationEntryPoint;
 
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 
 @Configuration
@@ -58,6 +59,7 @@ public class SecurityConfig {
 				.accessDeniedHandler(customAccessDeniedHandler)
 			)
 			.authorizeHttpRequests(auth -> auth
+				.dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
 				.requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/reissue").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/teams", "/api/teams/*").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/categories/*/posts", "/api/posts/*").permitAll()
