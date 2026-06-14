@@ -9,6 +9,12 @@ spring:
     open-in-view: false
 
 app:
+  admin-bootstrap:
+    enabled: ${ADMIN_BOOTSTRAP_ENABLED:false}
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+    nickname: ${ADMIN_NICKNAME:}
+
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
     allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS

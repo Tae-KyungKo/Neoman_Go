@@ -48,16 +48,20 @@ public class User {
 
 	private LocalDateTime deletedAt;
 
-	private User(String email, String password, String nickname) {
+	private User(String email, String password, String nickname, UserRole role) {
 		this.email = email;
 		this.password = password;
 		this.nickname = nickname;
-		this.role = UserRole.USER;
+		this.role = role;
 		this.status = UserStatus.ACTIVE;
 	}
 
 	public static User create(String email, String encodedPassword, String nickname) {
-		return new User(email, encodedPassword, nickname);
+		return new User(email, encodedPassword, nickname, UserRole.USER);
+	}
+
+	public static User createAdmin(String email, String encodedPassword, String nickname) {
+		return new User(email, encodedPassword, nickname, UserRole.ADMIN);
 	}
 
 	public void softDelete() {

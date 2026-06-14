@@ -87,8 +87,10 @@ Refresh Token Redis TTL은 `JWT_REFRESH_TOKEN_VALIDITY_SECONDS`와 동일하게 
 ## 7. Admin bootstrap
 
 ```text
+ADMIN_BOOTSTRAP_ENABLED=false
 ADMIN_EMAIL=<admin-email>
 ADMIN_PASSWORD=<admin-initial-password>
+ADMIN_NICKNAME=<admin-nickname>
 ```
 
 초기 ADMIN은 one-time runner 또는 command 방식으로 생성한다. 일반 회원가입 API에서 `role=ADMIN` 주입은 허용하지 않는다.
