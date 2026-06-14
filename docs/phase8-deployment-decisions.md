@@ -1,5 +1,20 @@
 # Phase 8 Deployment Decisions
 
+## 16. Phase 8-10 Monitoring, Health, Logging Decision
+
+Backend health and logging are implemented as a minimal production baseline.
+
+- Dependency: `spring-boot-starter-actuator`
+- Web exposure: `health,info` only
+- prod/prodlike health details: `never`
+- DB and Redis indicators are part of overall health
+- Public unauthenticated paths: `GET /actuator/health`, `GET /actuator/info`
+- Non-exposed actuator endpoints such as env, beans, configprops, loggers, metrics, heapdump, and threaddump remain unavailable
+- prod/prodlike log levels: root INFO, `com.neomango` INFO, Spring Security WARN, Hibernate SQL not DEBUG
+- Runtime logs go to stdout
+- prod-like backend healthcheck uses `/actuator/health`
+- No Prometheus, Grafana, ELK, CloudWatch Agent, APM, CD, or GitHub Actions change is included
+
 ## 15. Phase 8-9 Backend CI Decision
 
 Backend CI is implemented as validation only.

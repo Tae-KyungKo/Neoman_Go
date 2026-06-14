@@ -67,6 +67,12 @@ services:
       TZ: Asia/Seoul
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
 
   nginx:
     image: nginx:1.27-alpine

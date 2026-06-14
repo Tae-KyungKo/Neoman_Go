@@ -192,6 +192,25 @@ class JwtAuthenticationFilterTest {
 			.andExpect(status().isUnauthorized());
 	}
 
+	@Test
+	void actuatorHealthAllowsRequestWithoutToken() throws Exception {
+		mockMvc.perform(get("/actuator/health"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status", is("UP")));
+	}
+
+	@Test
+	void actuatorInfoAllowsRequestWithoutToken() throws Exception {
+		mockMvc.perform(get("/actuator/info"))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void actuatorEnvIsNotExposed() throws Exception {
+		mockMvc.perform(get("/actuator/env"))
+			.andExpect(status().isUnauthorized());
+	}
+
 	@RestController
 	static class TestAuthController {
 

@@ -1,5 +1,25 @@
 # Phase 8 Known Risks
 
+## 9. Phase 8-10 Monitoring, Health, Logging Risks
+
+Phase 8-10 is a baseline, not a full observability platform.
+
+Remaining risks:
+
+- `/actuator/health` is public, so health details must stay hidden in prod/prodlike.
+- A public health endpoint can still reveal coarse service availability.
+- Docker healthcheck depends on DB and Redis health; temporary dependency startup delays can mark backend unhealthy.
+- stdout logs require an external collection strategy later.
+- No metrics, tracing, dashboards, alerting, or centralized log search exists in this phase.
+
+Mitigations:
+
+- Expose only health/info.
+- Keep prod/prodlike `show-details=never`.
+- Use backend healthcheck `start_period` and retries to reduce startup false negatives.
+- Keep secrets, tokens, Authorization headers, and passwords out of logs.
+- Defer Prometheus/Grafana/APM/log collection design to a later operational phase.
+
 ## 8. Phase 8-9 Backend CI Risks
 
 Phase 8-9 is CI only, so deployment risk is intentionally out of scope.

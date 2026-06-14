@@ -14,6 +14,10 @@ FROM eclipse-temurin:17-jre-jammy AS runtime
 
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN useradd --system --uid 10001 --create-home --shell /usr/sbin/nologin appuser
 
 COPY --from=build /workspace/build/libs/*.jar app.jar

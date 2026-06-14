@@ -185,3 +185,12 @@ docker compose -f docker-compose.prodlike.yml --env-file .env.prodlike down -v
 - Confirm the frontend uses a fetch-based SSE client with `Authorization` header support.
 - Implement the frontend token refresh and reconnect flow.
 - Re-test authenticated SSE through Nginx with a local verification account without printing token values.
+
+## 13. Phase 8-10 Actuator Proxy Update
+
+The existing Nginx `location /` proxy allows access to:
+
+- `GET /actuator/health`
+- `GET /actuator/info`
+
+Spring Actuator web exposure is limited to health/info, so sensitive actuator endpoints such as env, beans, metrics, loggers, heapdump, and threaddump are not exposed through Nginx. SSE proxy settings and token query parameter prohibition remain unchanged.

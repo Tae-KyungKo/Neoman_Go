@@ -1,5 +1,17 @@
 # Phase 8 Deployment Plan
 
+## Phase 8-10 Monitoring, Health, Logging
+
+Phase 8-10 adds a first backend observability baseline.
+
+- Actuator exposes only `/actuator/health` and `/actuator/info`.
+- prod/prodlike health details are hidden with `show-details=never`.
+- DB and Redis health are included in overall health.
+- `/actuator/health` and `/actuator/info` are public; other actuator endpoints are not exposed.
+- prod-like backend has a Docker healthcheck using `/actuator/health`.
+- Logs stay stdout-centered; no log collector, Prometheus, Grafana, APM, AWS, or CD is added.
+- Secrets, tokens, Authorization headers, DB passwords, Redis passwords, JWT secrets, AWS credentials, and ADMIN passwords must not be logged.
+
 ## Phase 8-9 Backend GitHub Actions CI
 
 Phase 8-9 adds backend CI only.

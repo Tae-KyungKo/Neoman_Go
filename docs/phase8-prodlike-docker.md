@@ -160,3 +160,13 @@ Key decisions:
 - CORS credentials are `false` because the current authentication contract uses JSON tokens and `Authorization: Bearer`, not HttpOnly Cookie Refresh Token.
 - Native `EventSource` alone is not compatible with the current SSE authentication contract.
 - SSE token query parameters remain prohibited.
+
+## 11. Phase 8-10 Healthcheck Update
+
+The prod-like backend container now has a Docker healthcheck based on:
+
+```text
+http://localhost:8080/actuator/health
+```
+
+The runtime image includes `curl` only for this container healthcheck. Backend health depends on DB and Redis health through Actuator. The healthcheck uses a start period and retries so MySQL/Redis readiness and Spring startup do not cause immediate false negatives.
