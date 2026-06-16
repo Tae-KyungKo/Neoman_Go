@@ -290,3 +290,18 @@ Notification DB storage is the source of truth. SSE is a realtime helper channel
 - Native `EventSource` alone: not compatible with the current Authorization header policy
 
 See [phase8-sse-reconnect-fallback.md](./phase8-sse-reconnect-fallback.md).
+## 17. Phase 8-11A Production Deployment Docs Decision
+
+Phase 8-11A is documentation and template preparation only.
+
+- No AWS resources are created.
+- No production server connection is performed.
+- No GitHub Actions workflow or CD is added.
+- Production backend target remains EC2 + Docker + host Nginx.
+- Production DB target remains RDS MySQL.
+- First production Redis target remains EC2 Docker Redis with AOF and password.
+- Production compose excludes MySQL because RDS is used.
+- `.env.prod.example` contains placeholders only.
+- `.env.prod` must never be committed.
+- Production Nginx template keeps SSE proxy settings and permits health/info proxying.
+- Rollback is tag-based for backend code; DB rollback is snapshot/forward-fix based.

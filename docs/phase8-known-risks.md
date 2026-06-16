@@ -197,3 +197,24 @@ Mitigations:
 - Keep the 30-second backend heartbeat enabled.
 - Implement frontend reconnect behavior with token refresh.
 - Move Actuator health hardening to Phase 8-10.
+## 10. Phase 8-11A Production Deployment Risks
+
+Phase 8-11A does not provision infrastructure, so real production risk remains until Phase 8-11B rehearsal and deployment.
+
+Remaining risks:
+
+- Route 53 delegation is not applied yet.
+- AWS resources are not created yet.
+- Production TLS is not issued yet.
+- RDS backup/snapshot policy must be confirmed before migration.
+- EC2 Docker Redis has weaker managed-operations guarantees than ElastiCache.
+- `.env.prod` handling depends on server-side operational discipline.
+
+Mitigations:
+
+- Use `.env.prod.example` only as a placeholder template.
+- Keep `.env.prod` ignored and outside Git.
+- Use release tags for production checkout.
+- Verify RDS snapshot before deployment.
+- Keep Redis port closed to the internet.
+- Use the runbook and release checklist before Phase 8-11B.

@@ -197,3 +197,17 @@ Phase 8-6에서는 prod-like compose에 Nginx reverse proxy를 추가하고, Ngi
 - native `EventSource` 단독 사용은 현재 인증 정책과 맞지 않으므로 fetch 기반 SSE client 사용을 전제로 한다.
 
 세부 설정과 검증 절차는 [phase8-nginx-cors-sse.md](./phase8-nginx-cors-sse.md)를 따른다.
+## Phase 8-11A Production Deployment Docs
+
+Phase 8-11A prepares production deployment documents and templates only. It does not create AWS resources, connect to production servers, or add CD.
+
+- Production compose template: `docker-compose.prod.yml`
+- Production env placeholder: `.env.prod.example`
+- Production Nginx template: `nginx/prod/api.neomango.kr.conf.template`
+- Deployment guide: `docs/production-deployment-guide.md`
+- Runbook: `docs/production-runbook.md`
+- Rollback guide: `docs/rollback-guide.md`
+- Release checklist: `docs/release-checklist.md`
+- Release rehearsal: `docs/phase8-release-rehearsal.md`
+
+Production DB remains RDS MySQL. First production Redis remains EC2 Docker Redis with AOF, password, no public port, `appendfsync everysec`, and `noeviction`.
