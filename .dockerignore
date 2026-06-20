@@ -6,6 +6,7 @@ build
 out
 *.log
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.war
 *.zip
 .env
