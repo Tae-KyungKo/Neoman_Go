@@ -3,7 +3,6 @@ package com.neomango.support;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.neomango.user.entity.User;
-import com.neomango.user.entity.UserRole;
 
 public final class UserTestFixture {
 
@@ -19,8 +18,8 @@ public final class UserTestFixture {
 	}
 
 	public static User admin(Long id, String email, String nickname) {
-		User user = user(id, email, nickname);
-		ReflectionTestUtils.setField(user, "role", UserRole.ADMIN);
+		User user = User.createAdmin(email, ENCODED_PASSWORD, nickname);
+		ReflectionTestUtils.setField(user, "id", id);
 		return user;
 	}
 }

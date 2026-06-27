@@ -104,6 +104,64 @@ class TeamControllerTest {
 			.andExpect(jsonPath("$.data.status").value("RECRUITING"))
 			.andExpect(jsonPath("$.data.ownerId").value(user.getId()))
 			.andExpect(jsonPath("$.data.ownerNickname").value("owner"));
+
+		assertThat(teamRepository.count()).isEqualTo(1);
+		assertThat(teamMemberRepository.count()).isEqualTo(1);
+		assertThat(userCategoryMembershipRepository.countByUserIdAndCategory(user.getId(), "GAME")).isEqualTo(1);
+	}
+
+	@Test
+	void createTeamRejectsDuplicateCategoryTeamForSameUser() throws Exception {
+		User user = userRepository.save(User.create("duplicate-category-owner@test.com", "encoded-password", "owner"));
+		String accessToken = jwtTokenProvider.createAccessToken(user.getId(), UserRole.USER);
+		TeamCreateRequest firstRequest = new TeamCreateRequest("First Game Team", "first", "GAME");
+		TeamCreateRequest secondRequest = new TeamCreateRequest("Second Game Team", "second", "GAME");
+
+		mockMvc.perform(post("/api/teams")
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(firstRequest)))
+			.andExpect(status().isCreated());
+
+		long teamCount = teamRepository.count();
+		long teamMemberCount = teamMemberRepository.count();
+		long membershipCount = userCategoryMembershipRepository.count();
+
+		mockMvc.perform(post("/api/teams")
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(secondRequest)))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("T007"));
+
+		assertThat(teamRepository.count()).isEqualTo(teamCount);
+		assertThat(teamMemberRepository.count()).isEqualTo(teamMemberCount);
+		assertThat(userCategoryMembershipRepository.count()).isEqualTo(membershipCount);
+		assertThat(userCategoryMembershipRepository.countByUserIdAndCategory(user.getId(), "GAME")).isEqualTo(1);
+	}
+
+	@Test
+	void createTeamAllowsDifferentCategoryForSameUser() throws Exception {
+		User user = userRepository.save(User.create("different-category-owner@test.com", "encoded-password", "owner"));
+		String accessToken = jwtTokenProvider.createAccessToken(user.getId(), UserRole.USER);
+
+		mockMvc.perform(post("/api/teams")
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new TeamCreateRequest("Game Team", null, "GAME"))))
+			.andExpect(status().isCreated());
+
+		mockMvc.perform(post("/api/teams")
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new TeamCreateRequest("Soccer Team", null, "SOCCER"))))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.category").value("SOCCER"));
+
+		assertThat(teamRepository.count()).isEqualTo(2);
+		assertThat(teamMemberRepository.count()).isEqualTo(2);
+		assertThat(userCategoryMembershipRepository.countByUserIdAndCategory(user.getId(), "GAME")).isEqualTo(1);
+		assertThat(userCategoryMembershipRepository.countByUserIdAndCategory(user.getId(), "SOCCER")).isEqualTo(1);
 	}
 
 	@Test
@@ -501,9 +559,45 @@ class TeamControllerTest {
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("T001"));
 
-		Team newGameTeam = teamRepository.saveAndFlush(Team.create("New Game Team", null, "GAME", otherOwner));
-		userCategoryMembershipRepository.saveAndFlush(UserCategoryMembership.create(owner, "GAME", newGameTeam));
+		mockMvc.perform(post("/api/teams")
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new TeamCreateRequest("New Game Team", null, "GAME"))))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.category").value("GAME"))
+			.andExpect(jsonPath("$.data.ownerId").value(owner.getId()));
+
 		assertThat(userCategoryMembershipRepository.existsByUserIdAndCategory(owner.getId(), "GAME")).isTrue();
+	}
+
+	@Test
+	void createTeamAllowsSameCategoryAfterMemberLeavesTeam() throws Exception {
+		User owner = userRepository.save(User.create("owner-member-leave-create@test.com", "encoded-password", "owner"));
+		User member = userRepository.save(User.create("member-leave-create@test.com", "encoded-password", "member"));
+		Team team = Team.create("Game Team", null, "GAME", owner);
+		TeamMember memberTeamMember = TeamMember.createMember(team, member);
+		team.addMember(memberTeamMember);
+		Team savedTeam = teamRepository.saveAndFlush(team);
+		userCategoryMembershipRepository.saveAndFlush(UserCategoryMembership.create(member, "GAME", savedTeam));
+		String accessToken = jwtTokenProvider.createAccessToken(member.getId(), UserRole.USER);
+
+		mockMvc.perform(post("/api/teams/{teamId}/members/me/leave", savedTeam.getId())
+				.header("Authorization", "Bearer " + accessToken))
+			.andExpect(status().isOk());
+
+		assertThat(teamMemberRepository.findById(memberTeamMember.getId()).orElseThrow().getStatus())
+			.isEqualTo(TeamMemberStatus.INACTIVE);
+		assertThat(userCategoryMembershipRepository.existsByUserIdAndCategory(member.getId(), "GAME")).isFalse();
+
+		mockMvc.perform(post("/api/teams")
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new TeamCreateRequest("Member New Game Team", null, "GAME"))))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.category").value("GAME"))
+			.andExpect(jsonPath("$.data.ownerId").value(member.getId()));
+
+		assertThat(userCategoryMembershipRepository.countByUserIdAndCategory(member.getId(), "GAME")).isEqualTo(1);
 	}
 
 	@Test

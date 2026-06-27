@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,8 +23,10 @@ import com.neomango.team.entity.Team;
 import com.neomango.team.entity.TeamMember;
 import com.neomango.team.entity.TeamMemberRole;
 import com.neomango.team.entity.TeamStatus;
+import com.neomango.team.entity.UserCategoryMembership;
 import com.neomango.team.repository.TeamMemberRepository;
 import com.neomango.team.repository.TeamRepository;
+import com.neomango.team.repository.UserCategoryMembershipRepository;
 import com.neomango.user.entity.User;
 import com.neomango.user.entity.UserStatus;
 import com.neomango.user.repository.UserRepository;
@@ -37,6 +40,7 @@ public class TeamService {
 
 	private final TeamRepository teamRepository;
 	private final TeamMemberRepository teamMemberRepository;
+	private final UserCategoryMembershipRepository userCategoryMembershipRepository;
 	private final UserRepository userRepository;
 
 	public TeamResponse createTeam(Long userId, TeamCreateRequest request) {
@@ -54,8 +58,12 @@ public class TeamService {
 			request.category(),
 			owner
 		);
+		validateOwnerHasNoCategoryMembership(owner.getId(), team.getCategory());
 
-		return TeamResponse.from(teamRepository.save(team));
+		Team savedTeam = teamRepository.save(team);
+		createUserCategoryMembership(owner, savedTeam);
+
+		return TeamResponse.from(savedTeam);
 	}
 
 	@Transactional(readOnly = true)
@@ -140,6 +148,23 @@ public class TeamService {
 	private void validateActiveUser(User user) {
 		if (user.getStatus() != UserStatus.ACTIVE) {
 			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+		}
+	}
+
+	private void validateOwnerHasNoCategoryMembership(Long userId, String category) {
+		if (userCategoryMembershipRepository.existsByUserIdAndCategory(userId, category)) {
+			throw new BusinessException(ErrorCode.ALREADY_CATEGORY_TEAM_MEMBER);
+		}
+	}
+
+	private void createUserCategoryMembership(User owner, Team team) {
+		try {
+			userCategoryMembershipRepository.saveAndFlush(
+				UserCategoryMembership.create(owner, team.getCategory(), team)
+			);
+		}
+		catch (DataIntegrityViolationException exception) {
+			throw new BusinessException(ErrorCode.ALREADY_CATEGORY_TEAM_MEMBER);
 		}
 	}
 

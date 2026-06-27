@@ -62,3 +62,14 @@
 * P1: 핵심 도메인 정합성에 직접 영향이 있는 작업이다. 예: Team, TeamMember, TeamApplication, 승인 동시성.
 * P2: 사용자 경험 또는 운영 품질을 높이는 작업이다. 예: 알림, 모니터링, 관리자 기능.
 * P3: 확장성 또는 리팩토링 중심 작업이다. 예: CQRS 분리, 이벤트 기반 구조 전환.
+## Production Deployment Docs
+
+Production deployment is tag-based and documented under `docs/`.
+
+- [Production deployment guide](docs/production-deployment-guide.md)
+- [Production runbook](docs/production-runbook.md)
+- [Rollback guide](docs/rollback-guide.md)
+- [Release checklist](docs/release-checklist.md)
+- [Phase 8 release rehearsal](docs/phase8-release-rehearsal.md)
+
+Real production secrets must stay outside Git. Use `.env.prod.example` as a placeholder template only.

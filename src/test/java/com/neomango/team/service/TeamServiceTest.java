@@ -3,6 +3,7 @@ package com.neomango.team.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +12,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -31,8 +33,10 @@ import com.neomango.team.entity.TeamMember;
 import com.neomango.team.entity.TeamMemberRole;
 import com.neomango.team.entity.TeamMemberStatus;
 import com.neomango.team.entity.TeamStatus;
+import com.neomango.team.entity.UserCategoryMembership;
 import com.neomango.team.repository.TeamMemberRepository;
 import com.neomango.team.repository.TeamRepository;
+import com.neomango.team.repository.UserCategoryMembershipRepository;
 import com.neomango.user.entity.User;
 import com.neomango.user.repository.UserRepository;
 
@@ -46,6 +50,9 @@ class TeamServiceTest {
 
 	@Mock
 	private TeamMemberRepository teamMemberRepository;
+
+	@Mock
+	private UserCategoryMembershipRepository userCategoryMembershipRepository;
 
 	@Mock
 	private UserRepository userRepository;
@@ -91,6 +98,51 @@ class TeamServiceTest {
 		assertThat(ownerMember.getTeam()).isSameAs(savedTeam);
 		assertThat(ownerMember.getUser()).isSameAs(owner);
 		assertThat(ownerMember.getRole()).isEqualTo(TeamMemberRole.OWNER);
+	}
+
+	@Test
+	void createTeamSavesUserCategoryMembership() {
+		User owner = activeUser();
+		when(userRepository.findById(USER_ID)).thenReturn(Optional.of(owner));
+		when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		teamService.createTeam(USER_ID, request());
+
+		ArgumentCaptor<UserCategoryMembership> captor = ArgumentCaptor.forClass(UserCategoryMembership.class);
+		verify(userCategoryMembershipRepository).saveAndFlush(captor.capture());
+		UserCategoryMembership membership = captor.getValue();
+		assertThat(membership.getUser()).isSameAs(owner);
+		assertThat(membership.getCategory()).isEqualTo("GAME");
+		assertThat(membership.getTeam().getCategory()).isEqualTo("GAME");
+	}
+
+	@Test
+	void createTeamThrowsExceptionWhenUserAlreadyHasSameCategoryMembership() {
+		User owner = activeUser();
+		when(userRepository.findById(USER_ID)).thenReturn(Optional.of(owner));
+		when(userCategoryMembershipRepository.existsByUserIdAndCategory(USER_ID, "GAME")).thenReturn(true);
+
+		assertThatThrownBy(() -> teamService.createTeam(USER_ID, request()))
+			.isInstanceOf(BusinessException.class)
+			.extracting("errorCode")
+			.isEqualTo(ErrorCode.ALREADY_CATEGORY_TEAM_MEMBER);
+
+		verify(teamRepository, never()).save(any(Team.class));
+		verify(userCategoryMembershipRepository, never()).saveAndFlush(any(UserCategoryMembership.class));
+	}
+
+	@Test
+	void createTeamConvertsDuplicateCategoryMembershipConstraintViolation() {
+		User owner = activeUser();
+		when(userRepository.findById(USER_ID)).thenReturn(Optional.of(owner));
+		when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(userCategoryMembershipRepository.saveAndFlush(any(UserCategoryMembership.class)))
+			.thenThrow(new DataIntegrityViolationException("duplicate user category"));
+
+		assertThatThrownBy(() -> teamService.createTeam(USER_ID, request()))
+			.isInstanceOf(BusinessException.class)
+			.extracting("errorCode")
+			.isEqualTo(ErrorCode.ALREADY_CATEGORY_TEAM_MEMBER);
 	}
 
 	@Test

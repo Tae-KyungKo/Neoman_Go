@@ -1,24 +1,35 @@
 spring:
-  profiles:
-    include: secret
-
-  data:
-    redis:
-      host: localhost
-      port: 6379
-
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: false
 
   jpa:
-    database-platform: org.hibernate.dialect.MySQLDialect
-    hibernate:
-      ddl-auto: create
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
     open-in-view: false
 
+app:
+  admin-bootstrap:
+    enabled: ${ADMIN_BOOTSTRAP_ENABLED:false}
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+    nickname: ${ADMIN_NICKNAME:}
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+    allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+    allowed-headers: Authorization,Content-Type,Accept,Last-Event-ID,Cache-Control
+    allow-credentials: false
+
 jwt:
-  access-token-validity-in-seconds: 1800
-  refresh-token-validity-in-seconds: 1209600
+  access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY_SECONDS:1800}
+  refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY_SECONDS:1209600}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never

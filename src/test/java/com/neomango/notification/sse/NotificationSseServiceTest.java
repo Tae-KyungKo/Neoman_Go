@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -96,6 +97,30 @@ class NotificationSseServiceTest {
 
 		service.connect(1L);
 		emitter.runCompletionCallback();
+
+		assertThat(service.getConnectionCount(1L)).isZero();
+		assertThat(service.getTotalConnectionCount()).isZero();
+	}
+
+	@Test
+	void timeoutCleanupRemovesEmitter() {
+		CapturingSseEmitter emitter = new CapturingSseEmitter();
+		NotificationSseService service = new TestNotificationSseService(emitter);
+
+		service.connect(1L);
+		emitter.runTimeoutCallback();
+
+		assertThat(service.getConnectionCount(1L)).isZero();
+		assertThat(service.getTotalConnectionCount()).isZero();
+	}
+
+	@Test
+	void errorCleanupRemovesEmitter() {
+		CapturingSseEmitter emitter = new CapturingSseEmitter();
+		NotificationSseService service = new TestNotificationSseService(emitter);
+
+		service.connect(1L);
+		emitter.runErrorCallback();
 
 		assertThat(service.getConnectionCount(1L)).isZero();
 		assertThat(service.getTotalConnectionCount()).isZero();
@@ -229,6 +254,41 @@ class NotificationSseServiceTest {
 		assertThat(service.getConnectionCount(1L)).isEqualTo(2);
 	}
 
+	@Test
+	void sendHeartbeatSendsCommentToConnectedEmitters() {
+		CapturingSseEmitter firstEmitter = new CapturingSseEmitter();
+		CapturingSseEmitter secondEmitter = new CapturingSseEmitter();
+		NotificationSseService service = new TestNotificationSseService(firstEmitter, secondEmitter);
+		service.connect(1L);
+		service.connect(2L);
+		firstEmitter.clearSentEvents();
+		secondEmitter.clearSentEvents();
+
+		int successCount = service.sendHeartbeat();
+
+		assertThat(successCount).isEqualTo(2);
+		assertThat(firstEmitter.getHeartbeatCount()).isEqualTo(1);
+		assertThat(secondEmitter.getHeartbeatCount()).isEqualTo(1);
+		assertThat(service.getTotalConnectionCount()).isEqualTo(2);
+	}
+
+	@Test
+	void sendHeartbeatCleansUpFailedEmitter() {
+		CapturingSseEmitter failedEmitter = CapturingSseEmitter.failingHeartbeatWithIOException();
+		CapturingSseEmitter successEmitter = new CapturingSseEmitter();
+		NotificationSseService service = new TestNotificationSseService(failedEmitter, successEmitter);
+		service.connect(1L);
+		service.connect(1L);
+		failedEmitter.clearSentEvents();
+		successEmitter.clearSentEvents();
+
+		int successCount = service.sendHeartbeat();
+
+		assertThat(successCount).isEqualTo(1);
+		assertThat(service.getConnectionCount(1L)).isEqualTo(1);
+		assertThat(successEmitter.getHeartbeatCount()).isEqualTo(1);
+	}
+
 	private static NotificationResponse notificationResponse() {
 		return new NotificationResponse(
 			1L,
@@ -256,6 +316,13 @@ class NotificationSseServiceTest {
 			.anyMatch(expectedData::equals);
 	}
 
+	private static boolean containsComment(Set<DataWithMediaType> event, String comment) {
+		return event.stream()
+			.map(DataWithMediaType::getData)
+			.map(String::valueOf)
+			.anyMatch(data -> data.contains(comment));
+	}
+
 	private static class TestNotificationSseService extends NotificationSseService {
 
 		private final Queue<SseEmitter> emitters;
@@ -279,27 +346,36 @@ class NotificationSseServiceTest {
 		private final List<Set<DataWithMediaType>> sentEvents = new ArrayList<>();
 		private final boolean failNotificationWithIOException;
 		private final boolean failNotificationWithIllegalStateException;
+		private final boolean failHeartbeatWithIOException;
 		private Runnable completionCallback;
+		private Runnable timeoutCallback;
+		private Consumer<Throwable> errorCallback;
 
 		private CapturingSseEmitter() {
-			this(false, false);
+			this(false, false, false);
 		}
 
 		private CapturingSseEmitter(
 			boolean failNotificationWithIOException,
-			boolean failNotificationWithIllegalStateException
+			boolean failNotificationWithIllegalStateException,
+			boolean failHeartbeatWithIOException
 		) {
 			super(60L * 60L * 1000L);
 			this.failNotificationWithIOException = failNotificationWithIOException;
 			this.failNotificationWithIllegalStateException = failNotificationWithIllegalStateException;
+			this.failHeartbeatWithIOException = failHeartbeatWithIOException;
 		}
 
 		private static CapturingSseEmitter failingWithIOException() {
-			return new CapturingSseEmitter(true, false);
+			return new CapturingSseEmitter(true, false, false);
 		}
 
 		private static CapturingSseEmitter failingWithIllegalStateException() {
-			return new CapturingSseEmitter(false, true);
+			return new CapturingSseEmitter(false, true, false);
+		}
+
+		private static CapturingSseEmitter failingHeartbeatWithIOException() {
+			return new CapturingSseEmitter(false, false, true);
 		}
 
 		@Override
@@ -313,6 +389,9 @@ class NotificationSseServiceTest {
 					throw new IllegalStateException("SSE emitter is already completed");
 				}
 			}
+			if (containsComment(event, "heartbeat") && failHeartbeatWithIOException) {
+				throw new IOException("SSE heartbeat failed");
+			}
 
 			sentEvents.add(event);
 		}
@@ -323,8 +402,28 @@ class NotificationSseServiceTest {
 			super.onCompletion(callback);
 		}
 
+		@Override
+		public synchronized void onTimeout(Runnable callback) {
+			this.timeoutCallback = callback;
+			super.onTimeout(callback);
+		}
+
+		@Override
+		public synchronized void onError(Consumer<Throwable> callback) {
+			this.errorCallback = callback;
+			super.onError(callback);
+		}
+
 		private void runCompletionCallback() {
 			completionCallback.run();
+		}
+
+		private void runTimeoutCallback() {
+			timeoutCallback.run();
+		}
+
+		private void runErrorCallback() {
+			errorCallback.accept(new IOException("client disconnected"));
 		}
 
 		private void clearSentEvents() {
@@ -334,6 +433,12 @@ class NotificationSseServiceTest {
 		private int getNotificationEventCount() {
 			return (int)sentEvents.stream()
 				.filter(event -> containsEventName(event, "notification"))
+				.count();
+		}
+
+		private int getHeartbeatCount() {
+			return (int)sentEvents.stream()
+				.filter(event -> containsComment(event, "heartbeat"))
 				.count();
 		}
 

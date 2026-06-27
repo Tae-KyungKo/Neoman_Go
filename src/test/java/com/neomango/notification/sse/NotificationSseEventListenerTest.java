@@ -16,6 +16,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import com.neomango.notification.dto.NotificationResponse;
 import com.neomango.notification.entity.Notification;
@@ -80,6 +82,16 @@ class NotificationSseEventListenerTest {
 
 		assertThatCode(() -> notificationSseEventListener.handle(new NotificationCreatedEvent(10L, 1L)))
 			.doesNotThrowAnyException();
+	}
+
+	@Test
+	void handleUsesAfterCommitWithoutFallbackExecution() throws NoSuchMethodException {
+		TransactionalEventListener annotation = NotificationSseEventListener.class
+			.getMethod("handle", NotificationCreatedEvent.class)
+			.getAnnotation(TransactionalEventListener.class);
+
+		org.assertj.core.api.Assertions.assertThat(annotation.phase()).isEqualTo(TransactionPhase.AFTER_COMMIT);
+		org.assertj.core.api.Assertions.assertThat(annotation.fallbackExecution()).isFalse();
 	}
 
 	private static Notification notification(Long notificationId, Long receiverId) {
