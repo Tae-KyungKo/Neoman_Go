@@ -2,6 +2,7 @@ package com.neomango.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -10,6 +11,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,6 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.neomango.auth.dto.LoginRequest;
 import com.neomango.auth.dto.ReissueRequest;
+import com.neomango.auth.dto.SignupRequest;
 import com.neomango.auth.dto.TokenResponse;
 import com.neomango.auth.jwt.JwtProperties;
 import com.neomango.auth.jwt.JwtTokenProvider;
@@ -25,15 +28,19 @@ import com.neomango.global.exception.BusinessException;
 import com.neomango.global.exception.ErrorCode;
 import com.neomango.user.entity.User;
 import com.neomango.user.entity.UserRole;
+import com.neomango.user.entity.UserStatus;
 import com.neomango.user.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
 	private static final Long USER_ID = 1L;
+	private static final String LOGIN_ID = "tester01";
 	private static final String EMAIL = "user@test.com";
 	private static final String RAW_PASSWORD = "raw-password";
+	private static final String SIGNUP_PASSWORD = "Password123!";
 	private static final String ENCODED_PASSWORD = "encoded-password";
+	private static final String NICKNAME = "tester";
 	private static final String ACCESS_TOKEN = "access-token";
 	private static final String REFRESH_TOKEN = "refresh-token";
 	private static final String OLD_REFRESH_TOKEN = "old-refresh-token";
@@ -58,6 +65,89 @@ class AuthServiceTest {
 
 	@InjectMocks
 	private AuthService authService;
+
+	@Test
+	void signupCreatesUserWithLoginIdAndEncodedPassword() {
+		SignupRequest request = signupRequest();
+		when(passwordEncoder.encode(SIGNUP_PASSWORD)).thenReturn(ENCODED_PASSWORD);
+		when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		authService.signup(request);
+
+		ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+		verify(userRepository).saveAndFlush(userCaptor.capture());
+		User savedUser = userCaptor.getValue();
+		assertThat(savedUser.getLoginId()).isEqualTo(LOGIN_ID);
+		assertThat(savedUser.getEmail()).isEqualTo(EMAIL);
+		assertThat(savedUser.getNickname()).isEqualTo(NICKNAME);
+		assertThat(savedUser.getPassword()).isEqualTo(ENCODED_PASSWORD);
+		assertThat(savedUser.getPassword()).isNotEqualTo(SIGNUP_PASSWORD);
+		assertThat(savedUser.getRole()).isEqualTo(UserRole.USER);
+		assertThat(savedUser.getStatus()).isEqualTo(UserStatus.ACTIVE);
+	}
+
+	@Test
+	void signupThrowsExceptionWhenPasswordConfirmDoesNotMatch() {
+		SignupRequest request = new SignupRequest(LOGIN_ID, SIGNUP_PASSWORD, "Password123?", EMAIL, NICKNAME);
+
+		assertThatThrownBy(() -> authService.signup(request))
+			.isInstanceOf(BusinessException.class)
+			.extracting("errorCode")
+			.isEqualTo(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
+
+		verifyNoInteractions(userRepository, passwordEncoder);
+	}
+
+	@Test
+	void signupThrowsExceptionWhenNicknameIsReserved() {
+		SignupRequest request = new SignupRequest(LOGIN_ID, SIGNUP_PASSWORD, SIGNUP_PASSWORD, EMAIL, "Admin");
+
+		assertThatThrownBy(() -> authService.signup(request))
+			.isInstanceOf(BusinessException.class)
+			.extracting("errorCode")
+			.isEqualTo(ErrorCode.RESERVED_NICKNAME);
+
+		verifyNoInteractions(userRepository, passwordEncoder);
+	}
+
+	@Test
+	void signupThrowsExceptionWhenLoginIdAlreadyExists() {
+		SignupRequest request = signupRequest();
+		when(userRepository.existsByLoginId(LOGIN_ID)).thenReturn(true);
+
+		assertThatThrownBy(() -> authService.signup(request))
+			.isInstanceOf(BusinessException.class)
+			.extracting("errorCode")
+			.isEqualTo(ErrorCode.DUPLICATE_LOGIN_ID);
+
+		verifyNoInteractions(passwordEncoder);
+	}
+
+	@Test
+	void signupThrowsExceptionWhenEmailAlreadyExists() {
+		SignupRequest request = signupRequest();
+		when(userRepository.existsByEmail(EMAIL)).thenReturn(true);
+
+		assertThatThrownBy(() -> authService.signup(request))
+			.isInstanceOf(BusinessException.class)
+			.extracting("errorCode")
+			.isEqualTo(ErrorCode.DUPLICATE_EMAIL);
+
+		verifyNoInteractions(passwordEncoder);
+	}
+
+	@Test
+	void signupThrowsExceptionWhenNicknameAlreadyExists() {
+		SignupRequest request = signupRequest();
+		when(userRepository.existsByNickname(NICKNAME)).thenReturn(true);
+
+		assertThatThrownBy(() -> authService.signup(request))
+			.isInstanceOf(BusinessException.class)
+			.extracting("errorCode")
+			.isEqualTo(ErrorCode.DUPLICATE_NICKNAME);
+
+		verifyNoInteractions(passwordEncoder);
+	}
 
 	@Test
 	void loginReturnsAccessTokenAndRefreshTokenWhenCredentialsAreValid() {
@@ -336,5 +426,9 @@ class AuthServiceTest {
 		User user = User.create(com.neomango.support.TestLoginIds.next(), EMAIL, ENCODED_PASSWORD, "nickname");
 		ReflectionTestUtils.setField(user, "id", USER_ID);
 		return user;
+	}
+
+	private SignupRequest signupRequest() {
+		return new SignupRequest(LOGIN_ID, SIGNUP_PASSWORD, SIGNUP_PASSWORD, EMAIL, NICKNAME);
 	}
 }

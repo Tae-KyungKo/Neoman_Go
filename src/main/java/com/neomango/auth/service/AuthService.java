@@ -1,5 +1,8 @@
 package com.neomango.auth.service;
 
+import java.util.Objects;
+
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +18,7 @@ import com.neomango.global.exception.ErrorCode;
 import com.neomango.user.entity.User;
 import com.neomango.user.entity.UserStatus;
 import com.neomango.user.dto.UserResponse;
+import com.neomango.user.policy.UserPolicy;
 import com.neomango.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -31,17 +35,39 @@ public class AuthService {
 	private final JwtProperties jwtProperties;
 
 	public UserResponse signup(SignupRequest request) {
+		if (!Objects.equals(request.password(), request.passwordConfirm())) {
+			throw new BusinessException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
+		}
+
+		if (UserPolicy.isReservedNickname(request.nickname())) {
+			throw new BusinessException(ErrorCode.RESERVED_NICKNAME);
+		}
+
+		if (userRepository.existsByLoginId(request.loginId())) {
+			throw new BusinessException(ErrorCode.DUPLICATE_LOGIN_ID);
+		}
+
 		if (userRepository.existsByEmail(request.email())) {
 			throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
 		}
 
+		if (userRepository.existsByNickname(request.nickname())) {
+			throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+		}
+
 		User user = User.create(
+			request.loginId(),
 			request.email(),
 			passwordEncoder.encode(request.password()),
 			request.nickname()
 		);
 
-		return UserResponse.from(userRepository.save(user));
+		try {
+			return UserResponse.from(userRepository.saveAndFlush(user));
+		}
+		catch (DataIntegrityViolationException exception) {
+			throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE);
+		}
 	}
 
 	public TokenResponse login(LoginRequest request) {

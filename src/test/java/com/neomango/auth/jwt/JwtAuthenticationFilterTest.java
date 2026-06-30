@@ -94,14 +94,30 @@ class JwtAuthenticationFilterTest {
 				.contentType("application/json")
 				.content("""
 					{
+						"loginId": "tester01",
 						"email": "admin-injection@test.com",
-						"password": "password123",
+						"password": "Password123!",
+						"passwordConfirm": "Password123!",
 						"nickname": "normalUser",
 						"role": "ADMIN"
 					}
 					"""))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.role", is("USER")));
+	}
+
+	@Test
+	void signupRejectsLegacyRequestWithoutLoginIdAndPasswordConfirm() throws Exception {
+		mockMvc.perform(post("/api/auth/signup")
+				.contentType("application/json")
+				.content("""
+					{
+						"email": "old@example.com",
+						"password": "Password123!",
+						"nickname": "olduser"
+					}
+					"""))
+			.andExpect(status().isBadRequest());
 	}
 
 	@Test
