@@ -88,7 +88,7 @@ class TeamControllerTest {
 
 	@Test
 	void createTeamReturnsCreatedWhenAuthenticated() throws Exception {
-		User user = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		String accessToken = jwtTokenProvider.createAccessToken(user.getId(), UserRole.USER);
 		TeamCreateRequest request = new TeamCreateRequest("Game Team", "Weekend game team", "GAME");
 
@@ -112,7 +112,7 @@ class TeamControllerTest {
 
 	@Test
 	void createTeamRejectsDuplicateCategoryTeamForSameUser() throws Exception {
-		User user = userRepository.save(User.create("duplicate-category-owner@test.com", "encoded-password", "owner"));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "duplicate-category-owner@test.com", "encoded-password", "owner"));
 		String accessToken = jwtTokenProvider.createAccessToken(user.getId(), UserRole.USER);
 		TeamCreateRequest firstRequest = new TeamCreateRequest("First Game Team", "first", "GAME");
 		TeamCreateRequest secondRequest = new TeamCreateRequest("Second Game Team", "second", "GAME");
@@ -142,7 +142,7 @@ class TeamControllerTest {
 
 	@Test
 	void createTeamAllowsDifferentCategoryForSameUser() throws Exception {
-		User user = userRepository.save(User.create("different-category-owner@test.com", "encoded-password", "owner"));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "different-category-owner@test.com", "encoded-password", "owner"));
 		String accessToken = jwtTokenProvider.createAccessToken(user.getId(), UserRole.USER);
 
 		mockMvc.perform(post("/api/teams")
@@ -176,7 +176,7 @@ class TeamControllerTest {
 
 	@Test
 	void createTeamReturnsBadRequestWhenNameIsBlank() throws Exception {
-		User user = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		String accessToken = jwtTokenProvider.createAccessToken(user.getId(), UserRole.USER);
 		TeamCreateRequest request = new TeamCreateRequest(" ", "Weekend game team", "GAME");
 
@@ -190,7 +190,7 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamsReturnsTeamSummariesWithoutAuthentication() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		teamRepository.save(Team.create("Game Team", "Weekend game team", "GAME", owner));
 
 		mockMvc.perform(get("/api/teams")
@@ -207,7 +207,7 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamsFiltersByCategoryWithoutAuthentication() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 		teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 
@@ -223,7 +223,7 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamsUsesDefaultSortByCreatedAtDescAndIdDesc() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		Team olderTeam = teamRepository.save(Team.create("Older Team", null, "GAME", owner));
 		Team newerTeam = teamRepository.save(Team.create("Newer Team", null, "GAME", owner));
 		ReflectionTestUtils.setField(olderTeam, "createdAt", LocalDateTime.of(2026, 1, 1, 0, 0));
@@ -241,7 +241,7 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamsExcludesDeletedTeam() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		teamRepository.save(Team.create("Active Team", null, "GAME", owner));
 		Team deletedTeam = Team.create("Deleted Team", null, "GAME", owner);
 		ReflectionTestUtils.setField(deletedTeam, "deletedAt", LocalDateTime.now());
@@ -257,7 +257,7 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamDetailReturnsMembersWithoutAuthentication() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.save(Team.create("Game Team", "Weekend game team", "GAME", owner));
 
 		mockMvc.perform(get("/api/teams/{teamId}", team.getId()))
@@ -280,8 +280,8 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamMembersReturnsActiveMembersWhenAuthenticated() throws Exception {
-		User owner = userRepository.save(User.create("owner-members@test.com", "encoded-password", "owner"));
-		User member = userRepository.save(User.create("member-members@test.com", "encoded-password", "member"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-members@test.com", "encoded-password", "owner"));
+		User member = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member-members@test.com", "encoded-password", "member"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, member));
 		Team savedTeam = teamRepository.saveAndFlush(team);
@@ -315,9 +315,9 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamMembersExcludesInactiveMembers() throws Exception {
-		User owner = userRepository.save(User.create("owner-active-members@test.com", "encoded-password", "owner"));
-		User activeUser = userRepository.save(User.create("active-member-list@test.com", "encoded-password", "activeMember"));
-		User inactiveUser = userRepository.save(User.create("inactive-member-list@test.com", "encoded-password", "inactiveMember"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-active-members@test.com", "encoded-password", "owner"));
+		User activeUser = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "active-member-list@test.com", "encoded-password", "activeMember"));
+		User inactiveUser = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "inactive-member-list@test.com", "encoded-password", "inactiveMember"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, activeUser));
 		TeamMember inactiveMember = TeamMember.createMember(team, inactiveUser);
@@ -336,7 +336,7 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamMembersReturnsNotFoundWhenTeamIsDeleted() throws Exception {
-		User owner = userRepository.save(User.create("owner-deleted-members@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-deleted-members@test.com", "encoded-password", "owner"));
 		Team team = Team.create("Deleted Team", null, "GAME", owner);
 		team.softDelete();
 		Team savedTeam = teamRepository.saveAndFlush(team);
@@ -350,7 +350,7 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamMembersReturnsNotFoundWhenTeamDoesNotExist() throws Exception {
-		User user = userRepository.save(User.create("member-not-found-team@test.com", "encoded-password", "member"));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member-not-found-team@test.com", "encoded-password", "member"));
 		String accessToken = jwtTokenProvider.createAccessToken(user.getId(), UserRole.USER);
 
 		mockMvc.perform(get("/api/teams/{teamId}/members", 999L)
@@ -361,7 +361,7 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamMembersRejectsRequestWithoutAuthentication() throws Exception {
-		User owner = userRepository.save(User.create("owner-members-auth@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-members-auth@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 
 		mockMvc.perform(get("/api/teams/{teamId}/members", team.getId()))
@@ -370,9 +370,9 @@ class TeamControllerTest {
 
 	@Test
 	void leaveTeamSucceedsForNormalMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-leave@test.com", "encoded-password", "owner"));
-		User member = userRepository.save(User.create("member-leave@test.com", "encoded-password", "member"));
-		User otherOwner = userRepository.save(User.create("other-owner-leave@test.com", "encoded-password", "otherOwner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-leave@test.com", "encoded-password", "owner"));
+		User member = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member-leave@test.com", "encoded-password", "member"));
+		User otherOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other-owner-leave@test.com", "encoded-password", "otherOwner"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, member));
 		Team savedTeam = teamRepository.saveAndFlush(team);
@@ -416,10 +416,10 @@ class TeamControllerTest {
 
 	@Test
 	void leaveTeamCreatesNotificationsForRemainingActiveOwnerAndMembersOnly() throws Exception {
-		User owner = userRepository.save(User.create("owner-left-notification@test.com", "encoded-password", "owner"));
-		User leavingMember = userRepository.save(User.create("leaving-left-notification@test.com", "encoded-password", "leaving"));
-		User remainingMember = userRepository.save(User.create("remaining-left-notification@test.com", "encoded-password", "remaining"));
-		User inactiveUser = userRepository.save(User.create("inactive-left-notification@test.com", "encoded-password", "inactive"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-left-notification@test.com", "encoded-password", "owner"));
+		User leavingMember = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "leaving-left-notification@test.com", "encoded-password", "leaving"));
+		User remainingMember = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "remaining-left-notification@test.com", "encoded-password", "remaining"));
+		User inactiveUser = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "inactive-left-notification@test.com", "encoded-password", "inactive"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, leavingMember));
 		team.addMember(TeamMember.createMember(team, remainingMember));
@@ -459,8 +459,8 @@ class TeamControllerTest {
 
 	@Test
 	void leaveTeamRejectsOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner-leave-block@test.com", "encoded-password", "owner"));
-		User member = userRepository.save(User.create("member-leave-block@test.com", "encoded-password", "member"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-leave-block@test.com", "encoded-password", "owner"));
+		User member = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member-leave-block@test.com", "encoded-password", "member"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, member));
 		Team savedTeam = teamRepository.saveAndFlush(team);
@@ -482,12 +482,12 @@ class TeamControllerTest {
 
 	@Test
 	void leaveTeamDeletesTeamWhenOwnerIsOnlyActiveMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-leave-solo@test.com", "encoded-password", "owner"));
-		User otherOwner = userRepository.save(User.create("other-owner-leave-solo@test.com", "encoded-password", "otherOwner"));
-		User applicant1 = userRepository.save(User.create("applicant1-leave-solo@test.com", "encoded-password", "applicant1"));
-		User applicant2 = userRepository.save(User.create("applicant2-leave-solo@test.com", "encoded-password", "applicant2"));
-		User applicant3 = userRepository.save(User.create("applicant3-leave-solo@test.com", "encoded-password", "applicant3"));
-		User applicant4 = userRepository.save(User.create("applicant4-leave-solo@test.com", "encoded-password", "applicant4"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-leave-solo@test.com", "encoded-password", "owner"));
+		User otherOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other-owner-leave-solo@test.com", "encoded-password", "otherOwner"));
+		User applicant1 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant1-leave-solo@test.com", "encoded-password", "applicant1"));
+		User applicant2 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant2-leave-solo@test.com", "encoded-password", "applicant2"));
+		User applicant3 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant3-leave-solo@test.com", "encoded-password", "applicant3"));
+		User applicant4 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant4-leave-solo@test.com", "encoded-password", "applicant4"));
 		Team team = teamRepository.saveAndFlush(Team.create("Solo Owner Team", null, "GAME", owner));
 		Team sportsTeam = teamRepository.saveAndFlush(Team.create("Sports Team", null, "SPORTS", otherOwner));
 		userCategoryMembershipRepository.saveAndFlush(UserCategoryMembership.create(owner, "GAME", team));
@@ -572,8 +572,8 @@ class TeamControllerTest {
 
 	@Test
 	void createTeamAllowsSameCategoryAfterMemberLeavesTeam() throws Exception {
-		User owner = userRepository.save(User.create("owner-member-leave-create@test.com", "encoded-password", "owner"));
-		User member = userRepository.save(User.create("member-leave-create@test.com", "encoded-password", "member"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-member-leave-create@test.com", "encoded-password", "owner"));
+		User member = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member-leave-create@test.com", "encoded-password", "member"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		TeamMember memberTeamMember = TeamMember.createMember(team, member);
 		team.addMember(memberTeamMember);
@@ -602,8 +602,8 @@ class TeamControllerTest {
 
 	@Test
 	void leaveTeamRejectsUserWhoIsNotActiveTeamMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-leave-non-member@test.com", "encoded-password", "owner"));
-		User outsider = userRepository.save(User.create("outsider-leave@test.com", "encoded-password", "outsider"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-leave-non-member@test.com", "encoded-password", "owner"));
+		User outsider = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "outsider-leave@test.com", "encoded-password", "outsider"));
 		Team team = teamRepository.saveAndFlush(Team.create("Game Team", null, "GAME", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(outsider.getId(), UserRole.USER);
 
@@ -616,8 +616,8 @@ class TeamControllerTest {
 
 	@Test
 	void leaveTeamRejectsDeletedTeam() throws Exception {
-		User owner = userRepository.save(User.create("owner-leave-deleted@test.com", "encoded-password", "owner"));
-		User member = userRepository.save(User.create("member-leave-deleted@test.com", "encoded-password", "member"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-leave-deleted@test.com", "encoded-password", "owner"));
+		User member = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member-leave-deleted@test.com", "encoded-password", "member"));
 		Team team = Team.create("Deleted Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, member));
 		team.softDelete();
@@ -632,7 +632,7 @@ class TeamControllerTest {
 
 	@Test
 	void leaveTeamRejectsMissingTeam() throws Exception {
-		User member = userRepository.save(User.create("member-leave-missing@test.com", "encoded-password", "member"));
+		User member = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member-leave-missing@test.com", "encoded-password", "member"));
 		String accessToken = jwtTokenProvider.createAccessToken(member.getId(), UserRole.USER);
 
 		mockMvc.perform(post("/api/teams/{teamId}/members/me/leave", 999L)
@@ -643,7 +643,7 @@ class TeamControllerTest {
 
 	@Test
 	void leaveTeamRejectsRequestWithoutAuthentication() throws Exception {
-		User owner = userRepository.save(User.create("owner-leave-auth@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-leave-auth@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 
 		mockMvc.perform(post("/api/teams/{teamId}/members/me/leave", team.getId()))
@@ -652,9 +652,9 @@ class TeamControllerTest {
 
 	@Test
 	void kickMemberSucceedsWhenRequesterIsOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner-kick@test.com", "encoded-password", "owner"));
-		User target = userRepository.save(User.create("target-kick@test.com", "encoded-password", "target"));
-		User otherOwner = userRepository.save(User.create("other-owner-kick@test.com", "encoded-password", "otherOwner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-kick@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-kick@test.com", "encoded-password", "target"));
+		User otherOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other-owner-kick@test.com", "encoded-password", "otherOwner"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, target));
 		Team savedTeam = teamRepository.saveAndFlush(team);
@@ -702,9 +702,9 @@ class TeamControllerTest {
 
 	@Test
 	void kickMemberCreatesNotificationOnlyForKickedMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-kick-notification@test.com", "encoded-password", "owner"));
-		User target = userRepository.save(User.create("target-kick-notification@test.com", "encoded-password", "target"));
-		User remainingMember = userRepository.save(User.create("remaining-kick-notification@test.com", "encoded-password", "remaining"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-kick-notification@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-kick-notification@test.com", "encoded-password", "target"));
+		User remainingMember = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "remaining-kick-notification@test.com", "encoded-password", "remaining"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, target));
 		team.addMember(TeamMember.createMember(team, remainingMember));
@@ -738,9 +738,9 @@ class TeamControllerTest {
 
 	@Test
 	void kickMemberRejectsRequesterWhoIsNormalMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-kick-member@test.com", "encoded-password", "owner"));
-		User requester = userRepository.save(User.create("requester-kick-member@test.com", "encoded-password", "requester"));
-		User target = userRepository.save(User.create("target-kick-member@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-kick-member@test.com", "encoded-password", "owner"));
+		User requester = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "requester-kick-member@test.com", "encoded-password", "requester"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-kick-member@test.com", "encoded-password", "target"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, requester));
 		team.addMember(TeamMember.createMember(team, target));
@@ -760,7 +760,7 @@ class TeamControllerTest {
 
 	@Test
 	void kickMemberRejectsSelfKick() throws Exception {
-		User owner = userRepository.save(User.create("owner-kick-self@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-kick-self@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.saveAndFlush(Team.create("Game Team", null, "GAME", owner));
 		TeamMember ownerMember = team.getMembers().get(0);
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
@@ -774,9 +774,9 @@ class TeamControllerTest {
 
 	@Test
 	void kickMemberRejectsOtherTeamMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-kick-other-team@test.com", "encoded-password", "owner"));
-		User otherOwner = userRepository.save(User.create("other-owner-kick-other-team@test.com", "encoded-password", "otherOwner"));
-		User target = userRepository.save(User.create("target-kick-other-team@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-kick-other-team@test.com", "encoded-password", "owner"));
+		User otherOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other-owner-kick-other-team@test.com", "encoded-password", "otherOwner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-kick-other-team@test.com", "encoded-password", "target"));
 		Team team = teamRepository.saveAndFlush(Team.create("Game Team", null, "GAME", owner));
 		Team otherTeam = Team.create("Other Team", null, "SPORTS", otherOwner);
 		otherTeam.addMember(TeamMember.createMember(otherTeam, target));
@@ -796,7 +796,7 @@ class TeamControllerTest {
 
 	@Test
 	void kickMemberRejectsMissingTeam() throws Exception {
-		User owner = userRepository.save(User.create("owner-kick-missing-team@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-kick-missing-team@test.com", "encoded-password", "owner"));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
 		mockMvc.perform(post("/api/teams/{teamId}/members/{teamMemberId}/kick", 999L, 1L)
@@ -807,7 +807,7 @@ class TeamControllerTest {
 
 	@Test
 	void kickMemberRejectsMissingTeamMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-kick-missing-member@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-kick-missing-member@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.saveAndFlush(Team.create("Game Team", null, "GAME", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
@@ -819,8 +819,8 @@ class TeamControllerTest {
 
 	@Test
 	void kickMemberRejectsInactiveTeamMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-kick-inactive@test.com", "encoded-password", "owner"));
-		User target = userRepository.save(User.create("target-kick-inactive@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-kick-inactive@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-kick-inactive@test.com", "encoded-password", "target"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		TeamMember inactiveMember = TeamMember.createMember(team, target);
 		inactiveMember.deactivate();
@@ -836,8 +836,8 @@ class TeamControllerTest {
 
 	@Test
 	void kickMemberRejectsDeletedTeam() throws Exception {
-		User owner = userRepository.save(User.create("owner-kick-deleted@test.com", "encoded-password", "owner"));
-		User target = userRepository.save(User.create("target-kick-deleted@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-kick-deleted@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-kick-deleted@test.com", "encoded-password", "target"));
 		Team team = Team.create("Deleted Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, target));
 		team.softDelete();
@@ -856,8 +856,8 @@ class TeamControllerTest {
 
 	@Test
 	void kickMemberRejectsOwnerTarget() throws Exception {
-		User owner = userRepository.save(User.create("owner-kick-owner-target@test.com", "encoded-password", "owner"));
-		User targetOwner = userRepository.save(User.create("target-owner-kick@test.com", "encoded-password", "targetOwner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-kick-owner-target@test.com", "encoded-password", "owner"));
+		User targetOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-owner-kick@test.com", "encoded-password", "targetOwner"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		TeamMember targetOwnerMember = TeamMember.createOwner(team, targetOwner);
 		team.addMember(targetOwnerMember);
@@ -872,8 +872,8 @@ class TeamControllerTest {
 
 	@Test
 	void kickMemberRejectsRequestWithoutAuthentication() throws Exception {
-		User owner = userRepository.save(User.create("owner-kick-auth@test.com", "encoded-password", "owner"));
-		User target = userRepository.save(User.create("target-kick-auth@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-kick-auth@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-kick-auth@test.com", "encoded-password", "target"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, target));
 		Team savedTeam = teamRepository.saveAndFlush(team);
@@ -888,8 +888,8 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerSucceeds() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate@test.com", "encoded-password", "owner"));
-		User target = userRepository.save(User.create("target-delegate@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-delegate@test.com", "encoded-password", "target"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, target));
 		Team savedTeam = teamRepository.saveAndFlush(team);
@@ -936,9 +936,9 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerCreatesNotificationOnlyForNewOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate-notification@test.com", "encoded-password", "owner"));
-		User target = userRepository.save(User.create("target-delegate-notification@test.com", "encoded-password", "target"));
-		User member = userRepository.save(User.create("member-delegate-notification@test.com", "encoded-password", "member"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate-notification@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-delegate-notification@test.com", "encoded-password", "target"));
+		User member = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member-delegate-notification@test.com", "encoded-password", "member"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, target));
 		team.addMember(TeamMember.createMember(team, member));
@@ -970,9 +970,9 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerRejectsRequesterWhoIsNormalMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate-member@test.com", "encoded-password", "owner"));
-		User requester = userRepository.save(User.create("requester-delegate-member@test.com", "encoded-password", "requester"));
-		User target = userRepository.save(User.create("target-delegate-member@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate-member@test.com", "encoded-password", "owner"));
+		User requester = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "requester-delegate-member@test.com", "encoded-password", "requester"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-delegate-member@test.com", "encoded-password", "target"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, requester));
 		team.addMember(TeamMember.createMember(team, target));
@@ -994,7 +994,7 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerRejectsSelfDelegation() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate-self@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate-self@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.saveAndFlush(Team.create("Game Team", null, "GAME", owner));
 		TeamMember ownerMember = team.getMembers().get(0);
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
@@ -1010,9 +1010,9 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerRejectsOtherTeamMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate-other-team@test.com", "encoded-password", "owner"));
-		User otherOwner = userRepository.save(User.create("other-owner-delegate@test.com", "encoded-password", "otherOwner"));
-		User target = userRepository.save(User.create("target-delegate-other-team@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate-other-team@test.com", "encoded-password", "owner"));
+		User otherOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other-owner-delegate@test.com", "encoded-password", "otherOwner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-delegate-other-team@test.com", "encoded-password", "target"));
 		Team team = teamRepository.saveAndFlush(Team.create("Game Team", null, "GAME", owner));
 		Team otherTeam = Team.create("Other Team", null, "SPORTS", otherOwner);
 		otherTeam.addMember(TeamMember.createMember(otherTeam, target));
@@ -1034,7 +1034,7 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerRejectsMissingTeam() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate-missing-team@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate-missing-team@test.com", "encoded-password", "owner"));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
 		mockMvc.perform(post("/api/teams/{teamId}/owner/delegate", 999L)
@@ -1047,7 +1047,7 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerRejectsMissingTeamMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate-missing-member@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate-missing-member@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.saveAndFlush(Team.create("Game Team", null, "GAME", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
@@ -1061,8 +1061,8 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerRejectsInactiveTeamMember() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate-inactive@test.com", "encoded-password", "owner"));
-		User target = userRepository.save(User.create("target-delegate-inactive@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate-inactive@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-delegate-inactive@test.com", "encoded-password", "target"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		TeamMember inactiveMember = TeamMember.createMember(team, target);
 		inactiveMember.deactivate();
@@ -1081,8 +1081,8 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerRejectsOwnerTarget() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate-owner-target@test.com", "encoded-password", "owner"));
-		User targetOwner = userRepository.save(User.create("target-owner-delegate@test.com", "encoded-password", "targetOwner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate-owner-target@test.com", "encoded-password", "owner"));
+		User targetOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-owner-delegate@test.com", "encoded-password", "targetOwner"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		TeamMember targetOwnerMember = TeamMember.createOwner(team, targetOwner);
 		team.addMember(targetOwnerMember);
@@ -1099,8 +1099,8 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerRejectsDeletedTeam() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate-deleted@test.com", "encoded-password", "owner"));
-		User target = userRepository.save(User.create("target-delegate-deleted@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate-deleted@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-delegate-deleted@test.com", "encoded-password", "target"));
 		Team team = Team.create("Deleted Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, target));
 		team.softDelete();
@@ -1121,9 +1121,9 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerRejectsWhenActiveOwnerCountIsNotOneAfterDelegation() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate-count@test.com", "encoded-password", "owner"));
-		User anotherOwner = userRepository.save(User.create("another-owner-delegate-count@test.com", "encoded-password", "anotherOwner"));
-		User target = userRepository.save(User.create("target-delegate-count@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate-count@test.com", "encoded-password", "owner"));
+		User anotherOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "another-owner-delegate-count@test.com", "encoded-password", "anotherOwner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-delegate-count@test.com", "encoded-password", "target"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		TeamMember anotherOwnerMember = TeamMember.createOwner(team, anotherOwner);
 		TeamMember targetMember = TeamMember.createMember(team, target);
@@ -1144,8 +1144,8 @@ class TeamControllerTest {
 
 	@Test
 	void delegateOwnerRejectsRequestWithoutAuthentication() throws Exception {
-		User owner = userRepository.save(User.create("owner-delegate-auth@test.com", "encoded-password", "owner"));
-		User target = userRepository.save(User.create("target-delegate-auth@test.com", "encoded-password", "target"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-delegate-auth@test.com", "encoded-password", "owner"));
+		User target = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "target-delegate-auth@test.com", "encoded-password", "target"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, target));
 		Team savedTeam = teamRepository.saveAndFlush(team);
@@ -1162,7 +1162,7 @@ class TeamControllerTest {
 
 	@Test
 	void closeTeamSucceedsWhenRequesterIsOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
@@ -1177,7 +1177,7 @@ class TeamControllerTest {
 
 	@Test
 	void closeTeamRejectsRequestWithoutAuthentication() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 
 		mockMvc.perform(patch("/api/teams/{teamId}/close", team.getId()))
@@ -1186,8 +1186,8 @@ class TeamControllerTest {
 
 	@Test
 	void closeTeamRejectsRequesterWhoIsNotOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User member = userRepository.save(User.create("member@test.com", "encoded-password", "member"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User member = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member@test.com", "encoded-password", "member"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, member));
 		Team savedTeam = teamRepository.save(team);
@@ -1201,7 +1201,7 @@ class TeamControllerTest {
 
 	@Test
 	void deleteTeamSucceedsWhenRequesterIsOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
@@ -1217,7 +1217,7 @@ class TeamControllerTest {
 
 	@Test
 	void deleteTeamRejectsRequestWithoutAuthentication() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 
 		mockMvc.perform(delete("/api/teams/{teamId}", team.getId()))
@@ -1226,8 +1226,8 @@ class TeamControllerTest {
 
 	@Test
 	void deleteTeamRejectsRequesterWhoIsNotOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User member = userRepository.save(User.create("member@test.com", "encoded-password", "member"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User member = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member@test.com", "encoded-password", "member"));
 		Team team = Team.create("Game Team", null, "GAME", owner);
 		team.addMember(TeamMember.createMember(team, member));
 		Team savedTeam = teamRepository.save(team);
@@ -1241,7 +1241,7 @@ class TeamControllerTest {
 
 	@Test
 	void deletedTeamIsExcludedFromListAndDetail() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.save(Team.create("Game Team", null, "GAME", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
@@ -1262,8 +1262,8 @@ class TeamControllerTest {
 
 	@Test
 	void createTeamApplicationReturnsCreatedWhenAuthenticated() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(applicant.getId(), UserRole.USER);
 		TeamApplicationCreateRequest request = new TeamApplicationCreateRequest("가입하고 싶습니다.");
@@ -1292,7 +1292,7 @@ class TeamControllerTest {
 
 	@Test
 	void createTeamApplicationRejectsRequestWithoutAuthentication() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		TeamApplicationCreateRequest request = new TeamApplicationCreateRequest("가입하고 싶습니다.");
 
@@ -1305,12 +1305,12 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamApplicationsReturnsPendingApplicationsWhenRequesterIsOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant1 = userRepository.save(User.create("applicant1@test.com", "encoded-password", "mango1"));
-		User applicant2 = userRepository.save(User.create("applicant2@test.com", "encoded-password", "mango2"));
-		User applicant3 = userRepository.save(User.create("applicant3@test.com", "encoded-password", "mango3"));
-		User applicant4 = userRepository.save(User.create("applicant4@test.com", "encoded-password", "mango4"));
-		User applicant5 = userRepository.save(User.create("applicant5@test.com", "encoded-password", "mango5"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant1 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant1@test.com", "encoded-password", "mango1"));
+		User applicant2 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant2@test.com", "encoded-password", "mango2"));
+		User applicant3 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant3@test.com", "encoded-password", "mango3"));
+		User applicant4 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant4@test.com", "encoded-password", "mango4"));
+		User applicant5 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant5@test.com", "encoded-password", "mango5"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		saveApplication(team, applicant2, "second", LocalDateTime.of(2026, 5, 21, 13, 0), TeamApplicationStatus.PENDING);
 		saveApplication(team, applicant1, "first", LocalDateTime.of(2026, 5, 21, 12, 0), TeamApplicationStatus.PENDING);
@@ -1338,8 +1338,8 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamApplicationsRejectsNormalMember() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User member = userRepository.save(User.create("member@test.com", "encoded-password", "member"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User member = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member@test.com", "encoded-password", "member"));
 		Team team = Team.create("Futsal Team", null, "FUTSAL", owner);
 		team.addMember(TeamMember.createMember(team, member));
 		Team savedTeam = teamRepository.save(team);
@@ -1353,8 +1353,8 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamApplicationsRejectsUserWhoDoesNotBelongToTeam() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User outsider = userRepository.save(User.create("outsider@test.com", "encoded-password", "outsider"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User outsider = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "outsider@test.com", "encoded-password", "outsider"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		String accessToken = jwtTokenProvider.createAccessToken(outsider.getId(), UserRole.USER);
 
@@ -1366,8 +1366,8 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamApplicationsRejectsOtherTeamOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User otherOwner = userRepository.save(User.create("other-owner@test.com", "encoded-password", "otherOwner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User otherOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other-owner@test.com", "encoded-password", "otherOwner"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		teamRepository.save(Team.create("Other Team", null, "GAME", otherOwner));
 		String accessToken = jwtTokenProvider.createAccessToken(otherOwner.getId(), UserRole.USER);
@@ -1380,7 +1380,7 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamApplicationsReturnsNotFoundWhenTeamDoesNotExist() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
 		mockMvc.perform(get("/api/teams/{teamId}/applications", 999L)
@@ -1391,7 +1391,7 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamApplicationsReturnsNotFoundWhenTeamIsDeleted() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		Team team = Team.create("Futsal Team", null, "FUTSAL", owner);
 		team.softDelete();
 		Team savedTeam = teamRepository.save(team);
@@ -1405,7 +1405,7 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamApplicationsReturnsNotFoundWhenTeamDeletedAtExists() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		Team team = Team.create("Futsal Team", null, "FUTSAL", owner);
 		ReflectionTestUtils.setField(team, "deletedAt", LocalDateTime.now());
 		Team savedTeam = teamRepository.save(team);
@@ -1419,8 +1419,8 @@ class TeamControllerTest {
 
 	@Test
 	void getTeamApplicationsAllowsClosedTeam() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = Team.create("Futsal Team", null, "FUTSAL", owner);
 		team.close();
 		Team savedTeam = teamRepository.save(team);

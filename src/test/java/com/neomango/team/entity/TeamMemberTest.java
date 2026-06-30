@@ -56,7 +56,7 @@ class TeamMemberTest {
 	}
 
 	private User user() {
-		User user = User.create("user@test.com", "encoded-password", "user");
+		User user = User.create(com.neomango.support.TestLoginIds.next(), "user@test.com", "encoded-password", "user");
 		ReflectionTestUtils.setField(user, "id", 1L);
 		return user;
 	}

@@ -53,7 +53,7 @@ class NotificationSseControllerTest {
 
 	@Test
 	void streamAllowsAuthenticatedUser() throws Exception {
-		User user = userRepository.save(User.create("sse-user@test.com", "encoded-password", "sseUser"));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "sse-user@test.com", "encoded-password", "sseUser"));
 
 		mockMvc.perform(get("/api/notifications/stream")
 				.header("Authorization", "Bearer " + accessToken(user))

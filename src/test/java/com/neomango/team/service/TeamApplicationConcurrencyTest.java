@@ -78,8 +78,8 @@ class TeamApplicationConcurrencyTest {
 
 	@Test
 	void approveApplication_allowsOnlyOneSuccessWhenSameApplicationIsApprovedConcurrently() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		TeamApplication application = teamApplicationRepository.save(
 			TeamApplication.create(team, applicant, "message")
@@ -97,8 +97,8 @@ class TeamApplicationConcurrencyTest {
 
 	@Test
 	void processApplication_allowsOnlyOneSuccessWhenApproveAndRejectRunConcurrently() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		TeamApplication application = teamApplicationRepository.save(
 			TeamApplication.create(team, applicant, "message")
@@ -126,9 +126,9 @@ class TeamApplicationConcurrencyTest {
 
 	@Test
 	void approveApplication_allowsOnlyOneSameCategoryApplicationWhenDifferentTeamsAreApprovedConcurrently() throws Exception {
-		User owner1 = userRepository.save(User.create("owner1@test.com", "encoded-password", "owner1"));
-		User owner2 = userRepository.save(User.create("owner2@test.com", "encoded-password", "owner2"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner1 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner1@test.com", "encoded-password", "owner1"));
+		User owner2 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner2@test.com", "encoded-password", "owner2"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team1 = teamRepository.save(Team.create("Futsal Team 1", null, "FUTSAL", owner1));
 		Team team2 = teamRepository.save(Team.create("Futsal Team 2", null, "FUTSAL", owner2));
 		TeamApplication application1 = teamApplicationRepository.save(

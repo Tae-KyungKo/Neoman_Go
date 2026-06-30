@@ -113,8 +113,8 @@ class TeamApplicationReapplyIntegrationTest {
 
 	@Test
 	void activeMemberCannotBeApprovedAgainAndDuplicateTeamMemberRowIsNotCreated() {
-		User owner = userRepository.save(User.create("owner-active@test.com", "encoded-password", "owner"));
-		User activeMember = userRepository.save(User.create("member-active@test.com", "encoded-password", "member"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-active@test.com", "encoded-password", "owner"));
+		User activeMember = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member-active@test.com", "encoded-password", "member"));
 		Team team = teamRepository.save(Team.create("t1", null, CATEGORY, owner));
 		TeamMember member = TeamMember.createMember(team, activeMember);
 		team.addMember(member);
@@ -204,8 +204,8 @@ class TeamApplicationReapplyIntegrationTest {
 	}
 
 	private ReapplyFixture createLeftOwnerFixture() {
-		User tester1 = userRepository.save(User.create("tester1@test.com", "encoded-password", "tester1"));
-		User tester2 = userRepository.save(User.create("tester2@test.com", "encoded-password", "tester2"));
+		User tester1 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "tester1@test.com", "encoded-password", "tester1"));
+		User tester2 = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "tester2@test.com", "encoded-password", "tester2"));
 		Team team = teamRepository.save(Team.create("t1", null, CATEGORY, tester1));
 
 		TeamApplicationResponse tester2Application = teamApplicationService.createApplication(

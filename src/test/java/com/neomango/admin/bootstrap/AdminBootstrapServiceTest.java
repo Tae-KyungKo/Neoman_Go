@@ -59,7 +59,7 @@ class AdminBootstrapServiceTest {
 
 	@Test
 	void bootstrapSkipsWhenEmailAlreadyBelongsToAdmin() {
-		User existingAdmin = User.createAdmin(EMAIL, ENCODED_PASSWORD, NICKNAME);
+		User existingAdmin = User.createAdmin(com.neomango.support.TestLoginIds.next(), EMAIL, ENCODED_PASSWORD, NICKNAME);
 		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(existingAdmin));
 
 		AdminBootstrapResult result = adminBootstrapService.bootstrap(properties());
@@ -71,7 +71,7 @@ class AdminBootstrapServiceTest {
 
 	@Test
 	void bootstrapFailsWhenEmailAlreadyBelongsToUser() {
-		User existingUser = User.create(EMAIL, ENCODED_PASSWORD, NICKNAME);
+		User existingUser = User.create(com.neomango.support.TestLoginIds.next(), EMAIL, ENCODED_PASSWORD, NICKNAME);
 		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(existingUser));
 
 		assertThatThrownBy(() -> adminBootstrapService.bootstrap(properties()))

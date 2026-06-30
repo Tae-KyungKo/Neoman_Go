@@ -95,7 +95,7 @@ class NotificationSseEventListenerTest {
 	}
 
 	private static Notification notification(Long notificationId, Long receiverId) {
-		User receiver = User.create("receiver" + receiverId + "@test.com", "encoded-password", "receiver" + receiverId);
+		User receiver = User.create(com.neomango.support.TestLoginIds.next(), "receiver" + receiverId + "@test.com", "encoded-password", "receiver" + receiverId);
 		ReflectionTestUtils.setField(receiver, "id", receiverId);
 
 		Notification notification = Notification.create(

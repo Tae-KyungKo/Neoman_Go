@@ -80,7 +80,7 @@ class UserServiceTest {
 	}
 
 	private User activeUser() {
-		User user = User.create(EMAIL, ENCODED_PASSWORD, NICKNAME);
+		User user = User.create(com.neomango.support.TestLoginIds.next(), EMAIL, ENCODED_PASSWORD, NICKNAME);
 		ReflectionTestUtils.setField(user, "id", USER_ID);
 		return user;
 	}

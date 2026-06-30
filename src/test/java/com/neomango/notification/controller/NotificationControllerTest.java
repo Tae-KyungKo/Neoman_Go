@@ -278,7 +278,7 @@ class NotificationControllerTest {
 	}
 
 	private User saveUser(String email, String nickname) {
-		return userRepository.save(User.create(email, "encoded-password", nickname));
+		return userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), email, "encoded-password", nickname));
 	}
 
 	private String accessToken(User user) {
