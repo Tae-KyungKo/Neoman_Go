@@ -527,9 +527,10 @@
 - `loginId`의 DB 컬럼명은 `login_id`다.
 - Java 필드명과 API 필드명은 `loginId`다.
 - `loginId`는 4~12자다.
-- `loginId`는 영어 대소문자, 한글 완성형, 숫자만 허용한다.
+- `loginId`는 영어 대소문자, 숫자만 허용한다.
+- `loginId`에는 한글을 허용하지 않는다.
 - `loginId`에는 특수문자와 공백을 허용하지 않는다.
-- `loginId` 정규식 기준은 `^[A-Za-z0-9가-힣]{4,12}$`다.
+- `loginId` 정규식 기준은 `^[A-Za-z0-9]{4,12}$`다.
 - `loginId`는 대소문자를 구분한다.
 - DB collation도 case-sensitive로 맞춘다.
 

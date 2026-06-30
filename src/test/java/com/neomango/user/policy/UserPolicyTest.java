@@ -19,13 +19,14 @@ class UserPolicyTest {
 	}
 
 	@Test
-	void loginIdPatternAllowsKoreanAndNumber() {
-		assertThat(UserPolicy.LOGIN_ID_REGEX.matcher("가나다라").matches()).isTrue();
+	void loginIdPatternAllowsEnglishLettersAndNumber() {
+		assertThat(UserPolicy.LOGIN_ID_REGEX.matcher("AbCd").matches()).isTrue();
 		assertThat(UserPolicy.LOGIN_ID_REGEX.matcher("user1234").matches()).isTrue();
 	}
 
 	@Test
-	void loginIdPatternRejectsSpecialCharacterAndWhitespace() {
+	void loginIdPatternRejectsKoreanSpecialCharacterAndWhitespace() {
+		assertThat(UserPolicy.LOGIN_ID_REGEX.matcher("가나다라").matches()).isFalse();
 		assertThat(UserPolicy.LOGIN_ID_REGEX.matcher("user!").matches()).isFalse();
 		assertThat(UserPolicy.LOGIN_ID_REGEX.matcher("user 1").matches()).isFalse();
 	}

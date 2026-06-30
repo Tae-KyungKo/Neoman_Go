@@ -8,7 +8,7 @@ public final class UserPolicy {
 
 	public static final int LOGIN_ID_MIN_LENGTH = 4;
 	public static final int LOGIN_ID_MAX_LENGTH = 12;
-	public static final String LOGIN_ID_PATTERN = "^[A-Za-z0-9가-힣]{4,12}$";
+	public static final String LOGIN_ID_PATTERN = "^[A-Za-z0-9]{4,12}$";
 	public static final Pattern LOGIN_ID_REGEX = Pattern.compile(LOGIN_ID_PATTERN);
 
 	public static final int NICKNAME_MIN_LENGTH = 2;
