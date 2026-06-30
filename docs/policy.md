@@ -516,3 +516,72 @@
 - 팀 승인, 팀원 생성, 같은 카테고리 중복 소속 방지는 DB 제약과 트랜잭션 정책을 함께 고려한다.
 
 
+
+---
+
+## 13. Phase 9 회원가입/로그인 정책
+
+### 13.1 로그인 식별자
+
+- Phase 9부터 로그인 식별자는 email이 아니라 `loginId`다.
+- `loginId`의 DB 컬럼명은 `login_id`다.
+- Java 필드명과 API 필드명은 `loginId`다.
+- `loginId`는 4~12자다.
+- `loginId`는 영어 대소문자, 한글 완성형, 숫자만 허용한다.
+- `loginId`에는 특수문자와 공백을 허용하지 않는다.
+- `loginId` 정규식 기준은 `^[A-Za-z0-9가-힣]{4,12}$`다.
+- `loginId`는 대소문자를 구분한다.
+- DB collation도 case-sensitive로 맞춘다.
+
+### 13.2 이메일 정책
+
+- email은 로그인에 사용하지 않는다.
+- email 중복 제한은 유지한다.
+- 이메일 인증은 Phase 9 범위에 포함하지 않는다.
+
+### 13.3 비밀번호 정책
+
+- password는 8~16자다.
+- password에는 공백 문자를 허용하지 않는다.
+- password는 영문 대문자, 영문 소문자, 숫자, 일반 특수문자만 허용한다.
+- 한글 비밀번호는 허용하지 않는다.
+- 권장 정규식 예시:
+
+```text
+^[A-Za-z0-9!@#$%^&*()_\-+=\[\]{};:'",.<>/?\\|`~]{8,16}$
+```
+
+- password는 BCrypt로 단방향 해시 후 저장한다.
+
+### 13.4 닉네임 정책
+
+- nickname은 2~12자다.
+- nickname 중복 제한은 유지한다.
+- nickname은 대소문자를 구분한다.
+- 금칙어 검사는 대소문자를 무시한다.
+- 금지 닉네임은 `관리자`, `운영자`, `ADMIN`, `admin` 계열이다.
+- 관리자 계정의 실제 DB nickname은 `관리자`로 두지 않는다.
+- 공지사항 작성자 표시는 기존처럼 `관리자`로 유지할 수 있다.
+
+### 13.5 게시글/댓글 길이 정책
+
+- 게시글 제목은 1~100자다.
+- 게시글 본문은 1~5000자다.
+- 댓글 본문은 1~1000자다.
+
+### 13.6 중복 확인 API 정책
+
+- 아이디/닉네임 중복 확인 API는 UX 보조 기능이다.
+- 최종 중복 방어는 서버 검증과 DB unique constraint로 처리한다.
+- 단순 exists 체크 후 insert 방식만으로 중복을 방어하지 않는다.
+
+### 13.7 운영 환경 설정 파일 정책
+
+- 운영 DB/Redis 접속정보를 `application-prod.yml`에 직접 작성하지 않는다.
+- 운영 도메인, secret, password를 feature 브랜치에 커밋하지 않는다.
+- local profile에서 운영 DB/Redis를 바라보게 설정하지 않는다.
+- prod/prodlike에서는 `application-secret.yml`을 import하지 않는다.
+- 운영 `.env.prod`는 Git에 포함하지 않는다.
+- 환경변수 예시는 `.env.example` 또는 `docs/env.example.md`에만 작성한다.
+- 문서에는 환경변수 이름만 작성하고 실제 운영 값을 쓰지 않는다.
+- Phase 9 이후 ADMIN bootstrap에는 `ADMIN_BOOTSTRAP_LOGIN_ID`, `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD`, `ADMIN_BOOTSTRAP_NICKNAME`이 필요하다.
