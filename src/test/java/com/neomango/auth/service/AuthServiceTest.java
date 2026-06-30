@@ -150,6 +150,44 @@ class AuthServiceTest {
 	}
 
 	@Test
+	void checkLoginIdAvailabilityReturnsTrueWhenLoginIdIsValidAndUnused() {
+		assertThat(authService.isLoginIdAvailable(LOGIN_ID)).isTrue();
+	}
+
+	@Test
+	void checkLoginIdAvailabilityReturnsFalseWhenLoginIdIsInvalid() {
+		assertThat(authService.isLoginIdAvailable("test!")).isFalse();
+
+		verifyNoInteractions(userRepository);
+	}
+
+	@Test
+	void checkLoginIdAvailabilityReturnsFalseWhenLoginIdAlreadyExists() {
+		when(userRepository.existsByLoginId(LOGIN_ID)).thenReturn(true);
+
+		assertThat(authService.isLoginIdAvailable(LOGIN_ID)).isFalse();
+	}
+
+	@Test
+	void checkNicknameAvailabilityReturnsTrueWhenNicknameIsValidAndUnused() {
+		assertThat(authService.isNicknameAvailable(NICKNAME)).isTrue();
+	}
+
+	@Test
+	void checkNicknameAvailabilityReturnsFalseWhenNicknameIsReserved() {
+		assertThat(authService.isNicknameAvailable("Admin")).isFalse();
+
+		verifyNoInteractions(userRepository);
+	}
+
+	@Test
+	void checkNicknameAvailabilityReturnsFalseWhenNicknameAlreadyExists() {
+		when(userRepository.existsByNickname(NICKNAME)).thenReturn(true);
+
+		assertThat(authService.isNicknameAvailable(NICKNAME)).isFalse();
+	}
+
+	@Test
 	void loginReturnsAccessTokenAndRefreshTokenWhenCredentialsAreValid() {
 		User user = activeUser();
 		LoginRequest request = new LoginRequest(EMAIL, RAW_PASSWORD);

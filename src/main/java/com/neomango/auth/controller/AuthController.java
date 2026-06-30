@@ -1,11 +1,15 @@
 package com.neomango.auth.controller;
 
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
+import com.neomango.auth.dto.AvailabilityCheckResult;
+import com.neomango.auth.dto.AvailabilityResponse;
 import com.neomango.auth.dto.LoginRequest;
 import com.neomango.auth.dto.ReissueRequest;
 import com.neomango.auth.service.AuthService;
@@ -26,6 +30,18 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
 	private final AuthService authService;
+
+	@GetMapping("/check-login-id")
+	public ApiResponse<AvailabilityResponse> checkLoginId(@RequestParam(required = false) String loginId) {
+		AvailabilityCheckResult result = authService.checkLoginIdAvailability(loginId);
+		return new ApiResponse<>(true, "SUCCESS", result.message(), new AvailabilityResponse(result.available()));
+	}
+
+	@GetMapping("/check-nickname")
+	public ApiResponse<AvailabilityResponse> checkNickname(@RequestParam(required = false) String nickname) {
+		AvailabilityCheckResult result = authService.checkNicknameAvailability(nickname);
+		return new ApiResponse<>(true, "SUCCESS", result.message(), new AvailabilityResponse(result.available()));
+	}
 
 	@PostMapping("/signup")
 	public ApiResponse<UserResponse> signup(@Valid @RequestBody SignupRequest request) {

@@ -55,7 +55,48 @@ email 기반 로그인은 Phase 9 이후 사용하지 않는다.
 GET /api/auth/check-login-id?loginId=Tester01
 ```
 
-이 API는 회원가입 화면에서 사용자의 입력 피드백을 빠르게 제공하기 위한 UX 보조 기능이다. 동시 가입 요청이나 우회 요청을 막기 위해 최종 검증은 회원가입 서버 로직과 `users.login_id` unique constraint에서 수행해야 한다.
+### Response
+
+사용 가능:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "사용 가능한 아이디입니다.",
+  "data": {
+    "available": true
+  }
+}
+```
+
+중복:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "이미 존재하는 아이디입니다.",
+  "data": {
+    "available": false
+  }
+}
+```
+
+형식 오류:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "아이디는 4~12자의 영문 대소문자와 숫자만 사용할 수 있습니다.",
+  "data": {
+    "available": false
+  }
+}
+```
+
+이 API는 회원가입 화면에서 사용자의 입력 피드백을 빠르게 제공하기 위한 UX 보조 기능이다. 동시 가입 요청이나 우회 요청을 막기 위해 최종 검증은 회원가입 서버 로직과 `users.login_id` unique constraint에서 수행해야 한다. 사용자 enumeration 완화를 위한 rate limit/CAPTCHA는 이번 Phase에서 제외하며, 운영 고도화 단계에서 검토한다.
 
 ## GET /api/auth/check-nickname
 
@@ -67,4 +108,58 @@ GET /api/auth/check-login-id?loginId=Tester01
 GET /api/auth/check-nickname?nickname=tester
 ```
 
-이 API는 회원가입 화면에서 사용자의 입력 피드백을 빠르게 제공하기 위한 UX 보조 기능이다. 동시 가입 요청이나 우회 요청을 막기 위해 최종 검증은 회원가입 서버 로직과 nickname unique constraint에서 수행해야 한다.
+### Response
+
+사용 가능:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "사용 가능한 닉네임입니다.",
+  "data": {
+    "available": true
+  }
+}
+```
+
+중복:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "이미 존재하는 닉네임입니다.",
+  "data": {
+    "available": false
+  }
+}
+```
+
+금칙어:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "사용할 수 없는 닉네임입니다.",
+  "data": {
+    "available": false
+  }
+}
+```
+
+길이 오류:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "닉네임은 2~12자여야 합니다.",
+  "data": {
+    "available": false
+  }
+}
+```
+
+이 API는 회원가입 화면에서 사용자의 입력 피드백을 빠르게 제공하기 위한 UX 보조 기능이다. 동시 가입 요청이나 우회 요청을 막기 위해 최종 검증은 회원가입 서버 로직과 nickname unique constraint에서 수행해야 한다. 사용자 enumeration 완화를 위한 rate limit/CAPTCHA는 이번 Phase에서 제외하며, 운영 고도화 단계에서 검토한다.

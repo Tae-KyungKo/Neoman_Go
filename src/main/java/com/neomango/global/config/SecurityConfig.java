@@ -61,6 +61,7 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				.dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
 				.requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/reissue").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/auth/check-login-id", "/api/auth/check-nickname").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/teams", "/api/teams/*").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/categories/*/posts", "/api/posts/*").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
