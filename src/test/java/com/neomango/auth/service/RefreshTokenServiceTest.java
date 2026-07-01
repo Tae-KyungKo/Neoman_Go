@@ -23,6 +23,8 @@ class RefreshTokenServiceTest {
 
 	private static final Long USER_ID = 999001L;
 	private static final Long OTHER_USER_ID = 999002L;
+	private static final String EMAIL = "tester@example.com";
+	private static final String LOGIN_ID = "tester01";
 	private static final String REFRESH_TOKEN = "refresh-token-1";
 	private static final String OTHER_REFRESH_TOKEN = "refresh-token-2";
 
@@ -55,7 +57,18 @@ class RefreshTokenServiceTest {
 	}
 
 	@Test
-	void saveWithTtl() {
+	void saveStoresRefreshTokenWithUserIdBasedKey() {
+		refreshTokenService.save(USER_ID, REFRESH_TOKEN);
+
+		String savedRefreshToken = redisTemplate.opsForValue().get(refreshTokenKey(USER_ID));
+
+		assertThat(savedRefreshToken).isEqualTo(REFRESH_TOKEN);
+		assertThat(redisTemplate.hasKey(refreshTokenKey(EMAIL))).isFalse();
+		assertThat(redisTemplate.hasKey(refreshTokenKey(LOGIN_ID))).isFalse();
+	}
+
+	@Test
+	void saveWithTtlMatchingRefreshTokenValidity() {
 		refreshTokenService.save(USER_ID, REFRESH_TOKEN);
 
 		Long ttl = redisTemplate.getExpire(refreshTokenKey(USER_ID), TimeUnit.SECONDS);
@@ -66,6 +79,17 @@ class RefreshTokenServiceTest {
 	}
 
 	@Test
+	void findByUserIdReadsUserIdBasedKey() {
+		redisTemplate.opsForValue().set(refreshTokenKey(USER_ID), REFRESH_TOKEN);
+		redisTemplate.opsForValue().set(refreshTokenKey(EMAIL), OTHER_REFRESH_TOKEN);
+		redisTemplate.opsForValue().set(refreshTokenKey(LOGIN_ID), OTHER_REFRESH_TOKEN);
+
+		Optional<String> savedRefreshToken = refreshTokenService.findByUserId(USER_ID);
+
+		assertThat(savedRefreshToken).contains(REFRESH_TOKEN);
+	}
+
+	@Test
 	void deleteThenFindByUserIdReturnsEmpty() {
 		refreshTokenService.save(USER_ID, REFRESH_TOKEN);
 
@@ -73,6 +97,19 @@ class RefreshTokenServiceTest {
 
 		Optional<String> savedRefreshToken = refreshTokenService.findByUserId(USER_ID);
 		assertThat(savedRefreshToken).isEmpty();
+	}
+
+	@Test
+	void deleteRemovesUserIdBasedKeyOnly() {
+		refreshTokenService.save(USER_ID, REFRESH_TOKEN);
+		redisTemplate.opsForValue().set(refreshTokenKey(EMAIL), OTHER_REFRESH_TOKEN);
+		redisTemplate.opsForValue().set(refreshTokenKey(LOGIN_ID), OTHER_REFRESH_TOKEN);
+
+		refreshTokenService.delete(USER_ID);
+
+		assertThat(redisTemplate.hasKey(refreshTokenKey(USER_ID))).isFalse();
+		assertThat(redisTemplate.hasKey(refreshTokenKey(EMAIL))).isTrue();
+		assertThat(redisTemplate.hasKey(refreshTokenKey(LOGIN_ID))).isTrue();
 	}
 
 	@Test
@@ -127,9 +164,15 @@ class RefreshTokenServiceTest {
 	private void deleteTestKeys() {
 		redisTemplate.delete(refreshTokenKey(USER_ID));
 		redisTemplate.delete(refreshTokenKey(OTHER_USER_ID));
+		redisTemplate.delete(refreshTokenKey(EMAIL));
+		redisTemplate.delete(refreshTokenKey(LOGIN_ID));
 	}
 
 	private String refreshTokenKey(Long userId) {
-		return "RT:" + userId;
+		return "refresh:" + userId;
+	}
+
+	private String refreshTokenKey(String userIdentifier) {
+		return "refresh:" + userIdentifier;
 	}
 }

@@ -45,7 +45,11 @@
 ### 2.2 로그인/JWT
 - 인증 방식은 JWT Access Token + Refresh Token 구조를 사용한다.
 - Refresh Token은 Redis에 저장한다.
-- Redis 저장 시 TTL을 설정한다.
+- Refresh Token Redis key는 `refresh:{userId}` 형식을 사용한다.
+- email, loginId, nickname 같은 변경 가능한 사용자 식별자는 Refresh Token Redis key에 사용하지 않는다.
+- JWT subject는 userId 기준을 유지한다.
+- Redis 저장 시 TTL을 설정하고 Refresh Token 만료 시간 정책을 따른다.
+- 다중 기기 로그인은 Phase 9-8 범위에서 다루지 않는다.
 - Access Token은 API 인증에 사용한다.
 - Refresh Token은 Access Token 재발급에 사용한다.
 
