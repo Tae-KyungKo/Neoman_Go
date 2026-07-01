@@ -59,5 +59,5 @@
 - [ ] `ADMIN_BOOTSTRAP_ENABLED=false` by default.
 - [ ] Enable bootstrap only for first ADMIN creation.
 - [ ] Disable bootstrap after success.
-- [ ] Remove `ADMIN_PASSWORD` after success.
+- [ ] Remove `ADMIN_BOOTSTRAP_PASSWORD` after success.
 - [ ] Confirm normal signup cannot create ADMIN.

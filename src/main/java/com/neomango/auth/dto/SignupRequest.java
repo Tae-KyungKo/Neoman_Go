@@ -27,11 +27,5 @@ public record SignupRequest(
 	@Size(min = UserPolicy.NICKNAME_MIN_LENGTH, max = UserPolicy.NICKNAME_MAX_LENGTH)
 	String nickname
 ) {
-
-	@Deprecated
-	public SignupRequest(String email, String password, String nickname) {
-		// TODO(Phase 9-9): Remove this AdminBootstrap compatibility constructor after bootstrap accepts loginId.
-		this("admin01", password, password, email, nickname);
-	}
 }
 

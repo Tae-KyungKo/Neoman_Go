@@ -1,5 +1,7 @@
 package com.neomango.admin.bootstrap;
 
+import java.util.Optional;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,17 +21,26 @@ public class AdminBootstrapService {
 
 	@Transactional
 	public AdminBootstrapResult bootstrap(AdminBootstrapProperties properties) {
-		return userRepository.findByEmail(properties.email())
-			.map(this::handleExistingEmail)
-			.orElseGet(() -> createAdminWhenNoAdminExists(properties));
-	}
+		Optional<User> userByLoginId = userRepository.findByLoginId(properties.loginId());
+		Optional<User> userByEmail = userRepository.findByEmail(properties.email());
 
-	private AdminBootstrapResult handleExistingEmail(User user) {
-		if (user.getRole() == UserRole.ADMIN) {
+		if (userByLoginId.isPresent() && userByLoginId.get().getRole() != UserRole.ADMIN) {
+			throw new IllegalStateException("ADMIN bootstrap loginId is already used by a non-admin user.");
+		}
+
+		if (userByEmail.isPresent() && userByEmail.get().getRole() != UserRole.ADMIN) {
+			throw new IllegalStateException("ADMIN bootstrap email is already used by a non-admin user.");
+		}
+
+		if (userByLoginId.isPresent()) {
+			return AdminBootstrapResult.skipped(AdminBootstrapSkipReason.LOGIN_ID_ALREADY_ADMIN);
+		}
+
+		if (userByEmail.isPresent()) {
 			return AdminBootstrapResult.skipped(AdminBootstrapSkipReason.EMAIL_ALREADY_ADMIN);
 		}
 
-		throw new IllegalStateException("ADMIN bootstrap email is already used by a non-admin user.");
+		return createAdminWhenNoAdminExists(properties);
 	}
 
 	private AdminBootstrapResult createAdminWhenNoAdminExists(AdminBootstrapProperties properties) {
@@ -37,7 +48,12 @@ public class AdminBootstrapService {
 			return AdminBootstrapResult.skipped(AdminBootstrapSkipReason.ADMIN_ALREADY_EXISTS);
 		}
 
+		if (userRepository.existsByNickname(properties.nickname())) {
+			throw new IllegalStateException("ADMIN bootstrap nickname is already used.");
+		}
+
 		User admin = User.createAdmin(
+			properties.loginId(),
 			properties.email(),
 			passwordEncoder.encode(properties.password()),
 			properties.nickname()

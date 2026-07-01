@@ -25,9 +25,10 @@ import com.neomango.user.repository.UserRepository;
 class AdminBootstrapServiceTest {
 
 	private static final String EMAIL = "admin@test.com";
+	private static final String LOGIN_ID = "admin001";
 	private static final String RAW_PASSWORD = "strong-password";
 	private static final String ENCODED_PASSWORD = "encoded-admin-password";
-	private static final String NICKNAME = "admin";
+	private static final String NICKNAME = "mangoManager";
 
 	@Mock
 	private UserRepository userRepository;
@@ -39,9 +40,11 @@ class AdminBootstrapServiceTest {
 	private AdminBootstrapService adminBootstrapService;
 
 	@Test
-	void bootstrapCreatesAdminWhenEmailIsUnusedAndNoAdminExists() {
+	void bootstrapCreatesAdminWhenLoginIdEmailAndNicknameAreUnusedAndNoAdminExists() {
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.empty());
 		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
 		when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
+		when(userRepository.existsByNickname(NICKNAME)).thenReturn(false);
 		when(passwordEncoder.encode(RAW_PASSWORD)).thenReturn(ENCODED_PASSWORD);
 
 		AdminBootstrapResult result = adminBootstrapService.bootstrap(properties());
@@ -50,16 +53,44 @@ class AdminBootstrapServiceTest {
 		ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
 		verify(userRepository).save(userCaptor.capture());
 		User savedUser = userCaptor.getValue();
+		assertThat(savedUser.getLoginId()).isEqualTo(LOGIN_ID);
 		assertThat(savedUser.getEmail()).isEqualTo(EMAIL);
 		assertThat(savedUser.getNickname()).isEqualTo(NICKNAME);
 		assertThat(savedUser.getRole()).isEqualTo(UserRole.ADMIN);
+		assertThat(savedUser.getStatus()).isEqualTo(com.neomango.user.entity.UserStatus.ACTIVE);
 		assertThat(savedUser.getPassword()).isEqualTo(ENCODED_PASSWORD);
 		assertThat(savedUser.getPassword()).isNotEqualTo(RAW_PASSWORD);
 	}
 
 	@Test
+	void bootstrapSkipsWhenLoginIdAlreadyBelongsToAdmin() {
+		User existingAdmin = User.createAdmin(LOGIN_ID, EMAIL, ENCODED_PASSWORD, NICKNAME);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.of(existingAdmin));
+
+		AdminBootstrapResult result = adminBootstrapService.bootstrap(properties());
+
+		assertThat(result.adminCreated()).isFalse();
+		assertThat(result.skipReason()).isEqualTo(AdminBootstrapSkipReason.LOGIN_ID_ALREADY_ADMIN);
+		verify(userRepository, never()).save(any());
+	}
+
+	@Test
+	void bootstrapFailsWhenLoginIdAlreadyBelongsToUser() {
+		User existingUser = User.create(LOGIN_ID, EMAIL, ENCODED_PASSWORD, NICKNAME);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.of(existingUser));
+
+		assertThatThrownBy(() -> adminBootstrapService.bootstrap(properties()))
+			.isInstanceOf(IllegalStateException.class)
+			.hasMessageContaining("loginId")
+			.hasMessageContaining("non-admin user");
+
+		verify(userRepository, never()).save(any());
+	}
+
+	@Test
 	void bootstrapSkipsWhenEmailAlreadyBelongsToAdmin() {
-		User existingAdmin = User.createAdmin(com.neomango.support.TestLoginIds.next(), EMAIL, ENCODED_PASSWORD, NICKNAME);
+		User existingAdmin = User.createAdmin(LOGIN_ID, EMAIL, ENCODED_PASSWORD, NICKNAME);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.empty());
 		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(existingAdmin));
 
 		AdminBootstrapResult result = adminBootstrapService.bootstrap(properties());
@@ -72,6 +103,7 @@ class AdminBootstrapServiceTest {
 	@Test
 	void bootstrapFailsWhenEmailAlreadyBelongsToUser() {
 		User existingUser = User.create(com.neomango.support.TestLoginIds.next(), EMAIL, ENCODED_PASSWORD, NICKNAME);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.empty());
 		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(existingUser));
 
 		assertThatThrownBy(() -> adminBootstrapService.bootstrap(properties()))
@@ -83,6 +115,7 @@ class AdminBootstrapServiceTest {
 
 	@Test
 	void bootstrapSkipsWhenAnotherAdminAlreadyExists() {
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.empty());
 		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
 		when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(true);
 
@@ -93,7 +126,21 @@ class AdminBootstrapServiceTest {
 		verify(userRepository, never()).save(any());
 	}
 
+	@Test
+	void bootstrapFailsWhenNicknameAlreadyExists() {
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.empty());
+		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+		when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
+		when(userRepository.existsByNickname(NICKNAME)).thenReturn(true);
+
+		assertThatThrownBy(() -> adminBootstrapService.bootstrap(properties()))
+			.isInstanceOf(IllegalStateException.class)
+			.hasMessageContaining("nickname");
+
+		verify(userRepository, never()).save(any());
+	}
+
 	private AdminBootstrapProperties properties() {
-		return new AdminBootstrapProperties(true, EMAIL, RAW_PASSWORD, NICKNAME);
+		return new AdminBootstrapProperties(true, LOGIN_ID, EMAIL, RAW_PASSWORD, NICKNAME);
 	}
 }

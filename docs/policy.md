@@ -590,3 +590,8 @@
 - 환경변수 예시는 `.env.example` 또는 `docs/env.example.md`에만 작성한다.
 - 문서에는 환경변수 이름만 작성하고 실제 운영 값을 쓰지 않는다.
 - Phase 9 이후 ADMIN bootstrap에는 `ADMIN_BOOTSTRAP_LOGIN_ID`, `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD`, `ADMIN_BOOTSTRAP_NICKNAME`이 필요하다.
+- ADMIN bootstrap은 최초 운영 ADMIN 계정 생성용이다.
+- `ADMIN_BOOTSTRAP_ENABLED=true`는 최초 1회만 사용하고, 생성 후 `false`로 되돌린다.
+- `ADMIN_BOOTSTRAP_PASSWORD`는 최초 생성 후 운영 환경에서 제거하거나 무효화한다.
+- ADMIN loginId와 nickname은 Phase 9 사용자 정책을 따른다.
+- ADMIN DB nickname은 `관리자`를 쓰지 않는다. 공지 표시명 `관리자`와 계정 nickname은 별개다.

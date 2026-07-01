@@ -1,8 +1,6 @@
 package com.neomango.user.entity;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicLong;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -27,8 +25,6 @@ import com.neomango.user.policy.UserPolicy;
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
-
-	private static final AtomicLong LEGACY_LOGIN_ID_SEQUENCE = new AtomicLong(1);
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -71,22 +67,6 @@ public class User {
 
 	public static User createAdmin(String loginId, String email, String encodedPassword, String nickname) {
 		return new User(loginId, email, encodedPassword, nickname, UserRole.ADMIN);
-	}
-
-	@Deprecated
-	public static User create(String email, String encodedPassword, String nickname) {
-		// TODO(Phase 9-5): Remove this legacy factory after signup accepts loginId.
-		return new User(nextLegacyLoginId(), email, encodedPassword, nickname, UserRole.USER);
-	}
-
-	@Deprecated
-	public static User createAdmin(String email, String encodedPassword, String nickname) {
-		// TODO(Phase 9-9): Remove this legacy admin factory after admin bootstrap accepts loginId.
-		return new User(nextLegacyLoginId(), email, encodedPassword, nickname, UserRole.ADMIN);
-	}
-
-	private static String nextLegacyLoginId() {
-		return "legacy" + String.format("%06d", LEGACY_LOGIN_ID_SEQUENCE.getAndIncrement());
 	}
 
 	public void softDelete() {
