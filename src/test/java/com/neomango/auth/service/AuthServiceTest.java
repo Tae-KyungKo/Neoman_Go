@@ -190,8 +190,8 @@ class AuthServiceTest {
 	@Test
 	void loginReturnsAccessTokenAndRefreshTokenWhenCredentialsAreValid() {
 		User user = activeUser();
-		LoginRequest request = new LoginRequest(EMAIL, RAW_PASSWORD);
-		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+		LoginRequest request = new LoginRequest(LOGIN_ID, RAW_PASSWORD);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.of(user));
 		when(passwordEncoder.matches(RAW_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
 		when(jwtTokenProvider.createAccessToken(USER_ID, UserRole.USER)).thenReturn(ACCESS_TOKEN);
 		when(jwtTokenProvider.createRefreshToken(USER_ID)).thenReturn(REFRESH_TOKEN);
@@ -208,8 +208,8 @@ class AuthServiceTest {
 	@Test
 	void loginSavesRefreshTokenWhenCredentialsAreValid() {
 		User user = activeUser();
-		LoginRequest request = new LoginRequest(EMAIL, RAW_PASSWORD);
-		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+		LoginRequest request = new LoginRequest(LOGIN_ID, RAW_PASSWORD);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.of(user));
 		when(passwordEncoder.matches(RAW_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
 		when(jwtTokenProvider.createAccessToken(USER_ID, UserRole.USER)).thenReturn(ACCESS_TOKEN);
 		when(jwtTokenProvider.createRefreshToken(USER_ID)).thenReturn(REFRESH_TOKEN);
@@ -221,9 +221,9 @@ class AuthServiceTest {
 	}
 
 	@Test
-	void loginThrowsExceptionWhenEmailDoesNotExist() {
-		LoginRequest request = new LoginRequest(EMAIL, RAW_PASSWORD);
-		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+	void loginThrowsExceptionWhenLoginIdDoesNotExist() {
+		LoginRequest request = new LoginRequest(LOGIN_ID, RAW_PASSWORD);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> authService.login(request))
 			.isInstanceOf(BusinessException.class)
@@ -234,8 +234,8 @@ class AuthServiceTest {
 	@Test
 	void loginThrowsExceptionWhenPasswordDoesNotMatch() {
 		User user = activeUser();
-		LoginRequest request = new LoginRequest(EMAIL, RAW_PASSWORD);
-		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+		LoginRequest request = new LoginRequest(LOGIN_ID, RAW_PASSWORD);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.of(user));
 		when(passwordEncoder.matches(RAW_PASSWORD, ENCODED_PASSWORD)).thenReturn(false);
 
 		assertThatThrownBy(() -> authService.login(request))
@@ -248,8 +248,8 @@ class AuthServiceTest {
 	void loginThrowsExceptionWhenUserIsDeleted() {
 		User user = activeUser();
 		user.softDelete();
-		LoginRequest request = new LoginRequest(EMAIL, RAW_PASSWORD);
-		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+		LoginRequest request = new LoginRequest(LOGIN_ID, RAW_PASSWORD);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.of(user));
 		when(passwordEncoder.matches(RAW_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
 
 		assertThatThrownBy(() -> authService.login(request))
@@ -261,8 +261,8 @@ class AuthServiceTest {
 	@Test
 	void loginUsesPasswordEncoderMatches() {
 		User user = activeUser();
-		LoginRequest request = new LoginRequest(EMAIL, RAW_PASSWORD);
-		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+		LoginRequest request = new LoginRequest(LOGIN_ID, RAW_PASSWORD);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.of(user));
 		when(passwordEncoder.matches(RAW_PASSWORD, ENCODED_PASSWORD)).thenReturn(false);
 
 		assertThatThrownBy(() -> authService.login(request))
@@ -274,8 +274,8 @@ class AuthServiceTest {
 	@Test
 	void loginCreatesAccessTokenAndRefreshToken() {
 		User user = activeUser();
-		LoginRequest request = new LoginRequest(EMAIL, RAW_PASSWORD);
-		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+		LoginRequest request = new LoginRequest(LOGIN_ID, RAW_PASSWORD);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.of(user));
 		when(passwordEncoder.matches(RAW_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
 		when(jwtTokenProvider.createAccessToken(USER_ID, UserRole.USER)).thenReturn(ACCESS_TOKEN);
 		when(jwtTokenProvider.createRefreshToken(USER_ID)).thenReturn(REFRESH_TOKEN);
@@ -288,9 +288,9 @@ class AuthServiceTest {
 	}
 
 	@Test
-	void loginDoesNotCreateTokenWhenEmailDoesNotExist() {
-		LoginRequest request = new LoginRequest(EMAIL, RAW_PASSWORD);
-		when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+	void loginDoesNotCreateTokenWhenLoginIdDoesNotExist() {
+		LoginRequest request = new LoginRequest(LOGIN_ID, RAW_PASSWORD);
+		when(userRepository.findByLoginId(LOGIN_ID)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> authService.login(request))
 			.isInstanceOf(BusinessException.class);

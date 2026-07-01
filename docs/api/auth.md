@@ -38,12 +38,16 @@ Phase 9 이후 로그인 식별자는 email이 아니라 `loginId`다. email은 
 
 ```json
 {
-  "loginId": "Tester01",
+  "loginId": "tester01",
   "password": "Password123!"
 }
 ```
 
-email 기반 로그인은 Phase 9 이후 사용하지 않는다.
+Phase 9부터 로그인 식별자는 email이 아니라 `loginId`다. email 기반 로그인은 지원하지 않는다.
+
+JWT subject는 내부 `userId` 기준을 유지한다. 현재 프로젝트는 JWT-only API 구조이므로 `UserDetailsService`는 로그인 조회에 사용하지 않고, Spring Security 기본 유저 노출을 막기 위한 실패 bean으로 유지한다.
+
+Refresh Token은 기존 Redis 저장 정책을 유지한다. Redis key 구조 점검은 Phase 9-8에서 별도로 수행한다.
 
 ## GET /api/auth/check-login-id
 

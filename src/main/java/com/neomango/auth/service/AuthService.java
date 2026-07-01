@@ -117,7 +117,7 @@ public class AuthService {
 	}
 
 	public TokenResponse login(LoginRequest request) {
-		User user = userRepository.findByEmail(request.email())
+		User user = userRepository.findByLoginId(request.loginId())
 			.orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
 
 		if (!passwordEncoder.matches(request.password(), user.getPassword())) {
