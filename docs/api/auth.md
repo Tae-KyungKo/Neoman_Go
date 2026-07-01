@@ -6,6 +6,35 @@ Phase 9 이후 로그인 식별자는 email이 아니라 `loginId`다. email은 
 
 아이디/닉네임 중복 확인 API는 UX 보조 기능이다. 최종 중복 방어는 서버 검증과 DB unique constraint로 처리해야 한다.
 
+## 프론트 연동 요약
+
+프론트 로그인 요청 body는 다음 형식을 사용한다.
+
+```json
+{
+  "loginId": "tester01",
+  "password": "Password123!"
+}
+```
+
+email 기반 로그인 요청은 지원하지 않는다.
+
+프론트 회원가입 요청 body는 다음 형식을 사용한다.
+
+```json
+{
+  "loginId": "tester01",
+  "password": "Password123!",
+  "passwordConfirm": "Password123!",
+  "email": "test@example.com",
+  "nickname": "tester"
+}
+```
+
+중복 확인 API는 `data.available` boolean을 기준으로 처리한다. `false`는 중복뿐 아니라 형식 오류나 금칙어 정책 위반에도 반환될 수 있으므로 화면 메시지는 응답 `message`를 우선 사용한다.
+
+로그인 성공 시 기존과 동일하게 `data.accessToken`, `data.refreshToken`, `data.tokenType`, `data.accessTokenExpiresIn`을 사용한다. JWT subject는 내부 `userId` 기준이며 프론트는 subject를 loginId로 해석하지 않는다.
+
 ## POST /api/auth/signup
 
 회원가입 API다.
