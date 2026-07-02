@@ -373,6 +373,12 @@
 
 ### 9.6 SSE 실패 처리
 - 알림의 본체는 DB 저장 데이터이고, SSE는 실시간 전달 보조 수단이다.
+- SSE 연결 endpoint는 `text/event-stream` 응답이며 일반 REST JSON 응답과 예외 처리 흐름을 분리한다.
+- SSE 연결 전 인증/인가 실패, principal 누락, 잘못된 요청은 기존 Security/JWT 또는 명확한 HTTP status로 실패한다.
+- SSE 연결 이후 발생하는 전송 실패, client disconnect, timeout은 일반 REST JSON 에러 body로 변환하지 않는다.
+- `GlobalExceptionHandler`는 `Accept: text/event-stream` 요청을 SSE 요청으로 판단하고, 보조적으로 `/api/notifications/stream` URI를 SSE endpoint로 판단한다.
+- SSE 요청 예외 처리에서는 가능한 범위에서 HTTP status만 반환하고 `ErrorResponse` JSON body를 생성하지 않는다.
+- emitter cleanup은 `onCompletion`, `onTimeout`, `onError`, send failure에서 모두 수행한다.
 - SSE 전송 실패는 알림 유실로 보지 않는다.
 - SSE 전송 실패 후에도 DB 알림은 유지한다.
 - 사용자는 직접 조회 또는 새로고침 후 알림 목록 API로 안읽음 알림을 확인할 수 있다.
