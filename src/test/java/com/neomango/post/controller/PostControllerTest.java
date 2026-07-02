@@ -112,6 +112,30 @@ class PostControllerTest {
 	}
 
 	@Test
+	void createPostAcceptsMinAndMaxLengths() throws Exception {
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		String accessToken = accessToken(user);
+
+		mockMvc.perform(post("/api/categories/{category}/posts", "GAME")
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new PostCreateRequest("a", "b"))))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.title").value("a"))
+			.andExpect(jsonPath("$.data.content").value("b"));
+
+		String maxTitle = "a".repeat(100);
+		String maxContent = "b".repeat(5000);
+		mockMvc.perform(post("/api/categories/{category}/posts", "GAME")
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new PostCreateRequest(maxTitle, maxContent))))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.title").value(maxTitle))
+			.andExpect(jsonPath("$.data.content").value(maxContent));
+	}
+
+	@Test
 	void createPostRejectsRequestWithoutAuthentication() throws Exception {
 		PostCreateRequest request = new PostCreateRequest("title", "content");
 
@@ -122,9 +146,35 @@ class PostControllerTest {
 	}
 
 	@Test
+	void createPostRejectsMissingTitle() throws Exception {
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		PostCreateRequest request = new PostCreateRequest(null, "content");
+
+		mockMvc.perform(post("/api/categories/{category}/posts", "GAME")
+				.header("Authorization", "Bearer " + accessToken(user))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("G001"));
+	}
+
+	@Test
 	void createPostRejectsBlankTitle() throws Exception {
 		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		PostCreateRequest request = new PostCreateRequest(" ", "content");
+
+		mockMvc.perform(post("/api/categories/{category}/posts", "GAME")
+				.header("Authorization", "Bearer " + accessToken(user))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("G001"));
+	}
+
+	@Test
+	void createPostRejectsMissingContent() throws Exception {
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		PostCreateRequest request = new PostCreateRequest("title", null);
 
 		mockMvc.perform(post("/api/categories/{category}/posts", "GAME")
 				.header("Authorization", "Bearer " + accessToken(user))
@@ -276,6 +326,23 @@ class PostControllerTest {
 	}
 
 	@Test
+	void updatePostAcceptsMaxLengths() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		String maxTitle = "a".repeat(100);
+		String maxContent = "b".repeat(5000);
+		PostUpdateRequest request = new PostUpdateRequest(maxTitle, maxContent);
+
+		mockMvc.perform(patch("/api/posts/{postId}", post.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.title").value(maxTitle))
+			.andExpect(jsonPath("$.data.content").value(maxContent));
+	}
+
+	@Test
 	void updatePostRejectsRequesterWhoIsNotAuthor() throws Exception {
 		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		User other = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other@test.com", "encoded-password", "other"));
@@ -303,10 +370,52 @@ class PostControllerTest {
 	}
 
 	@Test
+	void updatePostRejectsBlankTitle() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		PostUpdateRequest request = new PostUpdateRequest(" ", "updated");
+
+		mockMvc.perform(patch("/api/posts/{postId}", post.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("G001"));
+	}
+
+	@Test
 	void updatePostRejectsBlankContent() throws Exception {
 		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		PostUpdateRequest request = new PostUpdateRequest("updated", " ");
+
+		mockMvc.perform(patch("/api/posts/{postId}", post.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("G001"));
+	}
+
+	@Test
+	void updatePostRejectsTooLongTitle() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		PostUpdateRequest request = new PostUpdateRequest("a".repeat(101), "updated");
+
+		mockMvc.perform(patch("/api/posts/{postId}", post.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("G001"));
+	}
+
+	@Test
+	void updatePostRejectsTooLongContent() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		PostUpdateRequest request = new PostUpdateRequest("updated", "a".repeat(5001));
 
 		mockMvc.perform(patch("/api/posts/{postId}", post.getId())
 				.header("Authorization", "Bearer " + accessToken(author))

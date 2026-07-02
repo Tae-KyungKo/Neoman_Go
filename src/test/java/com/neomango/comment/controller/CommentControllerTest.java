@@ -108,6 +108,28 @@ class CommentControllerTest {
 	}
 
 	@Test
+	void createCommentAcceptsMinAndMaxLengths() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		String accessToken = accessToken(author);
+
+		mockMvc.perform(post("/api/posts/{postId}/comments", post.getId())
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new CommentCreateRequest("a"))))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.content").value("a"));
+
+		String maxContent = "a".repeat(1000);
+		mockMvc.perform(post("/api/posts/{postId}/comments", post.getId())
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new CommentCreateRequest(maxContent))))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.content").value(maxContent));
+	}
+
+	@Test
 	void createCommentCreatesPostCommentNotificationToPostAuthor() throws Exception {
 		User postAuthor = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "post-author@test.com", "encoded-password", "postAuthor"));
 		User commentAuthor = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "comment-author@test.com", "encoded-password", "commentAuthor"));
@@ -155,6 +177,22 @@ class CommentControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isUnauthorized());
+
+		assertThat(notificationRepository.count()).isZero();
+	}
+
+	@Test
+	void createCommentRejectsMissingContent() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		CommentCreateRequest request = new CommentCreateRequest(null);
+
+		mockMvc.perform(post("/api/posts/{postId}/comments", post.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("G001"));
 
 		assertThat(notificationRepository.count()).isZero();
 	}
@@ -242,6 +280,22 @@ class CommentControllerTest {
 	}
 
 	@Test
+	void updateCommentAcceptsMaxLength() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		Comment comment = commentRepository.save(Comment.create(post, author, "comment"));
+		String maxContent = "a".repeat(1000);
+		CommentUpdateRequest request = new CommentUpdateRequest(maxContent);
+
+		mockMvc.perform(patch("/api/comments/{commentId}", comment.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.content").value(maxContent));
+	}
+
+	@Test
 	void updateCommentRejectsRequesterWhoIsNotAuthor() throws Exception {
 		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		User other = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other@test.com", "encoded-password", "other"));
@@ -255,6 +309,36 @@ class CommentControllerTest {
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.code").value("C002"));
+	}
+
+	@Test
+	void updateCommentRejectsBlankContent() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		Comment comment = commentRepository.save(Comment.create(post, author, "comment"));
+		CommentUpdateRequest request = new CommentUpdateRequest(" ");
+
+		mockMvc.perform(patch("/api/comments/{commentId}", comment.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("G001"));
+	}
+
+	@Test
+	void updateCommentRejectsTooLongContent() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		Comment comment = commentRepository.save(Comment.create(post, author, "comment"));
+		CommentUpdateRequest request = new CommentUpdateRequest("a".repeat(1001));
+
+		mockMvc.perform(patch("/api/comments/{commentId}", comment.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("G001"));
 	}
 
 	@Test
