@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -299,7 +301,7 @@ class NotificationSseServiceTest {
 			10L,
 			false,
 			null,
-			LocalDateTime.of(2026, 6, 5, 12, 0)
+			OffsetDateTime.of(LocalDateTime.of(2026, 6, 5, 12, 0), ZoneOffset.ofHours(9))
 		);
 	}
 

@@ -2,6 +2,7 @@ package com.neomango.global.exception;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -43,6 +45,24 @@ class GlobalExceptionHandlerTest {
 			.andExpect(jsonPath("$.status").value(409))
 			.andExpect(jsonPath("$.code").value(ErrorCode.DUPLICATE_EMAIL.getCode()))
 			.andExpect(jsonPath("$.message").value(ErrorCode.DUPLICATE_EMAIL.getMessage()));
+	}
+
+	@Test
+	@WithMockUser
+	void sseBusinessExceptionReturnsStatusOnly() throws Exception {
+		mockMvc.perform(get("/api/test/errors/business")
+				.accept(MediaType.TEXT_EVENT_STREAM))
+			.andExpect(status().isConflict())
+			.andExpect(content().string(""));
+	}
+
+	@Test
+	@WithMockUser
+	void sseGenericExceptionReturnsStatusOnly() throws Exception {
+		mockMvc.perform(get("/api/test/errors/generic")
+				.accept(MediaType.TEXT_EVENT_STREAM))
+			.andExpect(status().isInternalServerError())
+			.andExpect(content().string(""));
 	}
 
 	@Test
@@ -113,6 +133,11 @@ class GlobalExceptionHandlerTest {
 
 		@GetMapping("/api/test/errors/constraint")
 		void constraintViolation(@RequestParam @Min(1) int page) {
+		}
+
+		@GetMapping("/api/test/errors/generic")
+		void genericException() {
+			throw new IllegalStateException("SSE stream failed");
 		}
 	}
 }

@@ -88,12 +88,15 @@ Refresh Token Redis TTL은 `JWT_REFRESH_TOKEN_VALIDITY_SECONDS`와 동일하게 
 
 ```text
 ADMIN_BOOTSTRAP_ENABLED=false
-ADMIN_EMAIL=<admin-email>
-ADMIN_PASSWORD=<admin-initial-password>
-ADMIN_NICKNAME=<admin-nickname>
+ADMIN_BOOTSTRAP_LOGIN_ID=<admin-login-id>
+ADMIN_BOOTSTRAP_EMAIL=<admin-email>
+ADMIN_BOOTSTRAP_PASSWORD=<admin-initial-password>
+ADMIN_BOOTSTRAP_NICKNAME=<admin-nickname>
 ```
 
-초기 ADMIN은 one-time runner 또는 command 방식으로 생성한다. 일반 회원가입 API에서 `role=ADMIN` 주입은 허용하지 않는다.
+초기 ADMIN은 최초 운영 ADMIN 계정 생성을 위한 bootstrap runner로 생성한다. 일반 회원가입 API에서 `role=ADMIN` 주입은 허용하지 않는다.
+
+`ADMIN_BOOTSTRAP_ENABLED=true`는 최초 1회만 사용하고, 생성 후 `false`로 되돌린다. `ADMIN_BOOTSTRAP_PASSWORD`는 최초 생성 후 운영 환경에서 제거하거나 무효화한다. ADMIN loginId와 nickname은 Phase 9 사용자 정책을 따른다. DB nickname은 `관리자`를 쓰지 않으며, 공지 표시명 `관리자`와 계정 nickname은 별개다.
 
 ## 8. 금지 사항
 

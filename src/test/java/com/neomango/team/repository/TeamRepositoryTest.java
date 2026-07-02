@@ -339,6 +339,6 @@ class TeamRepositoryTest {
 	}
 
 	private User saveUser(String email, String nickname) {
-		return userRepository.saveAndFlush(User.create(email, "encoded-password", nickname));
+		return userRepository.saveAndFlush(User.create(com.neomango.support.TestLoginIds.next(), email, "encoded-password", nickname));
 	}
 }

@@ -18,6 +18,10 @@ public enum ErrorCode {
 
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "사용자를 찾을 수 없습니다."),
 	DUPLICATE_EMAIL(HttpStatus.CONFLICT, "U002", "이미 사용 중인 이메일입니다."),
+	DUPLICATE_LOGIN_ID(HttpStatus.CONFLICT, "U003", "이미 존재하는 아이디입니다."),
+	DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "U004", "이미 존재하는 닉네임입니다."),
+	RESERVED_NICKNAME(HttpStatus.BAD_REQUEST, "U005", "사용할 수 없는 닉네임입니다."),
+	PASSWORD_CONFIRM_MISMATCH(HttpStatus.BAD_REQUEST, "U006", "비밀번호 확인이 일치하지 않습니다."),
 
 	TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, "T001", "존재하지 않는 팀입니다."),
 	TEAM_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "T002", "팀장 권한이 필요합니다."),

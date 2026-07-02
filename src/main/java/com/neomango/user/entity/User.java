@@ -1,7 +1,6 @@
 package com.neomango.user.entity;
 
 import java.time.LocalDateTime;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,6 +15,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import com.neomango.user.policy.UserPolicy;
+
 @Getter
 @Entity
 @Table(
@@ -28,6 +29,9 @@ public class User {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
+
+	@Column(name = "login_id", nullable = false, length = UserPolicy.LOGIN_ID_MAX_LENGTH, unique = true)
+	private String loginId;
 
 	@Column(nullable = false, length = 100)
 	private String email;
@@ -48,7 +52,8 @@ public class User {
 
 	private LocalDateTime deletedAt;
 
-	private User(String email, String password, String nickname, UserRole role) {
+	private User(String loginId, String email, String password, String nickname, UserRole role) {
+		this.loginId = loginId;
 		this.email = email;
 		this.password = password;
 		this.nickname = nickname;
@@ -56,12 +61,12 @@ public class User {
 		this.status = UserStatus.ACTIVE;
 	}
 
-	public static User create(String email, String encodedPassword, String nickname) {
-		return new User(email, encodedPassword, nickname, UserRole.USER);
+	public static User create(String loginId, String email, String encodedPassword, String nickname) {
+		return new User(loginId, email, encodedPassword, nickname, UserRole.USER);
 	}
 
-	public static User createAdmin(String email, String encodedPassword, String nickname) {
-		return new User(email, encodedPassword, nickname, UserRole.ADMIN);
+	public static User createAdmin(String loginId, String email, String encodedPassword, String nickname) {
+		return new User(loginId, email, encodedPassword, nickname, UserRole.ADMIN);
 	}
 
 	public void softDelete() {

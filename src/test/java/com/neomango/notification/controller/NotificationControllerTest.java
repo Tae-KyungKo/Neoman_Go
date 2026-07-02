@@ -60,6 +60,8 @@ class NotificationControllerTest {
 	void getMyNotificationsReturnsAuthenticatedUserNotifications() throws Exception {
 		User user = saveUser("notification-user@test.com", "notificationUser");
 		Notification notification = notificationRepository.save(createNotification(user, "title", 1L));
+		setCreatedAt(notification, LocalDateTime.of(2026, 7, 1, 22, 30));
+		notificationRepository.saveAndFlush(notification);
 
 		mockMvc.perform(get("/api/notifications")
 				.header("Authorization", "Bearer " + accessToken(user)))
@@ -74,7 +76,7 @@ class NotificationControllerTest {
 			.andExpect(jsonPath("$.data.content[0].targetId").value(1L))
 			.andExpect(jsonPath("$.data.content[0].read").value(false))
 			.andExpect(jsonPath("$.data.content[0].readAt").doesNotExist())
-			.andExpect(jsonPath("$.data.content[0].createdAt").exists());
+			.andExpect(jsonPath("$.data.content[0].createdAt").value(org.hamcrest.Matchers.endsWith("+09:00")));
 	}
 
 	@Test
@@ -278,7 +280,7 @@ class NotificationControllerTest {
 	}
 
 	private User saveUser(String email, String nickname) {
-		return userRepository.save(User.create(email, "encoded-password", nickname));
+		return userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), email, "encoded-password", nickname));
 	}
 
 	private String accessToken(User user) {

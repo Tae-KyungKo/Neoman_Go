@@ -62,7 +62,7 @@ class NotificationSseAfterCommitIntegrationTest {
 		Long[] ids = new Long[2];
 
 		transactionTemplate.executeWithoutResult(status -> {
-			User receiver = userRepository.save(User.create("commit@test.com", "encoded-password", "commitUser"));
+			User receiver = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "commit@test.com", "encoded-password", "commitUser"));
 			Notification notification = notificationRepository.save(createNotification(receiver));
 
 			ids[0] = receiver.getId();
@@ -78,7 +78,7 @@ class NotificationSseAfterCommitIntegrationTest {
 	@Test
 	void doesNotSendSseWhenTransactionRollsBack() {
 		assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
-			User receiver = userRepository.save(User.create("rollback@test.com", "encoded-password", "rollbackUser"));
+			User receiver = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "rollback@test.com", "encoded-password", "rollbackUser"));
 			Notification notification = notificationRepository.save(createNotification(receiver));
 
 			eventPublisher.publishEvent(new NotificationCreatedEvent(notification.getId(), receiver.getId()));

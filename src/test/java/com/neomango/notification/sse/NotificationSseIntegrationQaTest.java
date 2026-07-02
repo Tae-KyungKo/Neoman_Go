@@ -73,8 +73,8 @@ class NotificationSseIntegrationQaTest {
 
 	@Test
 	void commentNotificationIsStoredAndSseIsSentOnlyAfterCommit() {
-		User postAuthor = userRepository.save(User.create("post-author@test.com", "encoded-password", "postAuthor"));
-		User commentAuthor = userRepository.save(User.create("comment-author@test.com", "encoded-password", "commentAuthor"));
+		User postAuthor = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "post-author@test.com", "encoded-password", "postAuthor"));
+		User commentAuthor = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "comment-author@test.com", "encoded-password", "commentAuthor"));
 		Post post = postRepository.save(Post.create("GAME", "post title", "content", postAuthor));
 
 		transactionTemplate.executeWithoutResult(status -> {
@@ -94,7 +94,7 @@ class NotificationSseIntegrationQaTest {
 
 	@Test
 	void rollbackPreventsNotificationSse() {
-		User receiver = userRepository.save(User.create("rollback-receiver@test.com", "encoded-password", "receiver"));
+		User receiver = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "rollback-receiver@test.com", "encoded-password", "receiver"));
 
 		assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
 			notificationService.createTeamApplicationApprovedNotification(
@@ -112,7 +112,7 @@ class NotificationSseIntegrationQaTest {
 
 	@Test
 	void selfActionDoesNotStoreNotificationOrSendSse() {
-		User author = userRepository.save(User.create("self-author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "self-author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "self post", "content", author));
 
 		transactionTemplate.executeWithoutResult(status ->
@@ -125,7 +125,7 @@ class NotificationSseIntegrationQaTest {
 
 	@Test
 	void disconnectedReceiverKeepsDbNotificationAndSseSendIsNoOp() {
-		User receiver = userRepository.save(User.create("offline@test.com", "encoded-password", "offline"));
+		User receiver = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "offline@test.com", "encoded-password", "offline"));
 
 		transactionTemplate.executeWithoutResult(status ->
 			notificationService.createTeamApplicationApprovedNotification(
@@ -144,7 +144,7 @@ class NotificationSseIntegrationQaTest {
 
 	@Test
 	void sseSendFailureDoesNotRollbackStoredNotification() {
-		User receiver = userRepository.save(User.create("sse-fail@test.com", "encoded-password", "receiver"));
+		User receiver = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "sse-fail@test.com", "encoded-password", "receiver"));
 		doThrow(new IllegalStateException("SSE send failed"))
 			.when(notificationSseService)
 			.sendToUser(eq(receiver.getId()), any(NotificationResponse.class));

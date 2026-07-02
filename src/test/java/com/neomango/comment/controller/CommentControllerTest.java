@@ -89,7 +89,7 @@ class CommentControllerTest {
 
 	@Test
 	void createCommentReturnsCreatedWhenAuthenticated() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		CommentCreateRequest request = new CommentCreateRequest("comment");
 
@@ -108,9 +108,31 @@ class CommentControllerTest {
 	}
 
 	@Test
+	void createCommentAcceptsMinAndMaxLengths() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		String accessToken = accessToken(author);
+
+		mockMvc.perform(post("/api/posts/{postId}/comments", post.getId())
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new CommentCreateRequest("a"))))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.content").value("a"));
+
+		String maxContent = "a".repeat(1000);
+		mockMvc.perform(post("/api/posts/{postId}/comments", post.getId())
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new CommentCreateRequest(maxContent))))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.content").value(maxContent));
+	}
+
+	@Test
 	void createCommentCreatesPostCommentNotificationToPostAuthor() throws Exception {
-		User postAuthor = userRepository.save(User.create("post-author@test.com", "encoded-password", "postAuthor"));
-		User commentAuthor = userRepository.save(User.create("comment-author@test.com", "encoded-password", "commentAuthor"));
+		User postAuthor = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "post-author@test.com", "encoded-password", "postAuthor"));
+		User commentAuthor = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "comment-author@test.com", "encoded-password", "commentAuthor"));
 		Post post = postRepository.save(Post.create("GAME", "post title", "content", postAuthor));
 		CommentCreateRequest request = new CommentCreateRequest("comment");
 
@@ -132,7 +154,7 @@ class CommentControllerTest {
 
 	@Test
 	void createCommentDoesNotCreateNotificationWhenAuthorCommentsOwnPost() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		CommentCreateRequest request = new CommentCreateRequest("comment");
 
@@ -147,7 +169,7 @@ class CommentControllerTest {
 
 	@Test
 	void createCommentRejectsRequestWithoutAuthentication() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		CommentCreateRequest request = new CommentCreateRequest("comment");
 
@@ -160,8 +182,24 @@ class CommentControllerTest {
 	}
 
 	@Test
+	void createCommentRejectsMissingContent() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		CommentCreateRequest request = new CommentCreateRequest(null);
+
+		mockMvc.perform(post("/api/posts/{postId}/comments", post.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("G001"));
+
+		assertThat(notificationRepository.count()).isZero();
+	}
+
+	@Test
 	void createCommentRejectsMissingPost() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		CommentCreateRequest request = new CommentCreateRequest("comment");
 
 		mockMvc.perform(post("/api/posts/{postId}/comments", 999L)
@@ -174,7 +212,7 @@ class CommentControllerTest {
 
 	@Test
 	void createCommentRejectsDeletedPost() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		post.softDelete(author.getId());
 		postRepository.saveAndFlush(post);
@@ -192,7 +230,7 @@ class CommentControllerTest {
 
 	@Test
 	void getCommentsReturnsOnlyActiveCommentsInOldestOrder() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		Comment oldComment = commentRepository.save(Comment.create(post, author, "old"));
 		Comment latestComment = commentRepository.save(Comment.create(post, author, "latest"));
@@ -213,7 +251,7 @@ class CommentControllerTest {
 
 	@Test
 	void getCommentsRejectsDeletedPost() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		post.softDelete(author.getId());
 		postRepository.saveAndFlush(post);
@@ -225,7 +263,7 @@ class CommentControllerTest {
 
 	@Test
 	void updateCommentSucceedsWhenRequesterIsAuthor() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		Comment comment = commentRepository.save(Comment.create(post, author, "comment"));
 		CommentUpdateRequest request = new CommentUpdateRequest("updated");
@@ -242,9 +280,25 @@ class CommentControllerTest {
 	}
 
 	@Test
+	void updateCommentAcceptsMaxLength() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		Comment comment = commentRepository.save(Comment.create(post, author, "comment"));
+		String maxContent = "a".repeat(1000);
+		CommentUpdateRequest request = new CommentUpdateRequest(maxContent);
+
+		mockMvc.perform(patch("/api/comments/{commentId}", comment.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.content").value(maxContent));
+	}
+
+	@Test
 	void updateCommentRejectsRequesterWhoIsNotAuthor() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
-		User other = userRepository.save(User.create("other@test.com", "encoded-password", "other"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		User other = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other@test.com", "encoded-password", "other"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		Comment comment = commentRepository.save(Comment.create(post, author, "comment"));
 		CommentUpdateRequest request = new CommentUpdateRequest("updated");
@@ -258,8 +312,38 @@ class CommentControllerTest {
 	}
 
 	@Test
+	void updateCommentRejectsBlankContent() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		Comment comment = commentRepository.save(Comment.create(post, author, "comment"));
+		CommentUpdateRequest request = new CommentUpdateRequest(" ");
+
+		mockMvc.perform(patch("/api/comments/{commentId}", comment.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("G001"));
+	}
+
+	@Test
+	void updateCommentRejectsTooLongContent() throws Exception {
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
+		Comment comment = commentRepository.save(Comment.create(post, author, "comment"));
+		CommentUpdateRequest request = new CommentUpdateRequest("a".repeat(1001));
+
+		mockMvc.perform(patch("/api/comments/{commentId}", comment.getId())
+				.header("Authorization", "Bearer " + accessToken(author))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("G001"));
+	}
+
+	@Test
 	void deleteCommentSoftDeletesWhenRequesterIsAuthor() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		Comment comment = commentRepository.save(Comment.create(post, author, "comment"));
 
@@ -278,8 +362,8 @@ class CommentControllerTest {
 
 	@Test
 	void deleteCommentRejectsRequesterWhoIsNotAuthor() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
-		User other = userRepository.save(User.create("other@test.com", "encoded-password", "other"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
+		User other = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other@test.com", "encoded-password", "other"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		Comment comment = commentRepository.save(Comment.create(post, author, "comment"));
 
@@ -291,7 +375,7 @@ class CommentControllerTest {
 
 	@Test
 	void createCommentRejectsBlankContent() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		CommentCreateRequest request = new CommentCreateRequest(" ");
 
@@ -307,7 +391,7 @@ class CommentControllerTest {
 
 	@Test
 	void createCommentRejectsTooLongContent() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		CommentCreateRequest request = new CommentCreateRequest("a".repeat(1001));
 
@@ -323,7 +407,7 @@ class CommentControllerTest {
 
 	@Test
 	void getCommentsShowsDeletedUserNickname() throws Exception {
-		User author = userRepository.save(User.create("deleted-author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "deleted-author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		commentRepository.save(Comment.create(post, author, "comment"));
 		author.softDelete();
@@ -336,7 +420,7 @@ class CommentControllerTest {
 
 	@Test
 	void getCommentsDoesNotExposeInternalFields() throws Exception {
-		User author = userRepository.save(User.create("author@test.com", "encoded-password", "author"));
+		User author = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "author@test.com", "encoded-password", "author"));
 		Post post = postRepository.save(Post.create("GAME", "title", "content", author));
 		commentRepository.save(Comment.create(post, author, "comment"));
 
