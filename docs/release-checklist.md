@@ -61,3 +61,27 @@
 - [ ] Disable bootstrap after success.
 - [ ] Remove `ADMIN_BOOTSTRAP_PASSWORD` after success.
 - [ ] Confirm normal signup cannot create ADMIN.
+
+## Phase 9-15 Prodlike QA - 2026-07-02
+
+- [x] Docker stack restarted with `docker compose -f docker-compose.prodlike.yml --env-file .env.prodlike down` and `up -d --build`.
+- [x] Container status checked: `mysql` healthy, `redis` healthy, `backend` healthy, `nginx` running.
+- [x] Health check passed directly on `http://localhost:8080/actuator/health` and through nginx on `http://localhost:8081/actuator/health`.
+- [x] Flyway history verified: V1 `baseline schema` success, V2 `add login id to users` success.
+- [x] `users.login_id` column exists with `uk_users_login_id`.
+- [x] `uk_users_nickname` exists.
+- [x] `login_id` and `nickname` use `utf8mb4_0900_as_cs` collation.
+- [x] Redis connection verified with `PONG`.
+- [x] Auth smoke passed: loginId/nickname availability, signup, loginId login, email-login validation failure, reissue, logout.
+- [x] Refresh Token Redis key policy verified: keys use `refresh:{userId}`; loginId/email based keys were not created; logout removed the owner user's refresh key.
+- [x] Notification REST/SSE smoke passed: authenticated stream returned `text/event-stream`, `connected` event, and `notification` event; REST list returned the same notification with `+09:00` createdAt.
+- [x] Post validation passed: title 0 failed, title 100 succeeded, title 101 failed, content 0 failed, content 5000 succeeded, content 5001 failed.
+- [x] Comment validation passed: content 0 failed, content 1000 succeeded, content 1001 failed.
+- [x] `ADMIN_BOOTSTRAP_ENABLED=false` behavior confirmed from backend log: `ADMIN bootstrap is disabled.`
+- [x] Verification commands passed: `.\gradlew.bat compileJava`, `.\gradlew.bat test`, `git diff --check`.
+- [x] Scope guard confirmed: `.env.prod` was not edited, no Flyway SQL was added, DB schema was not manually changed, Auth/JWT/RefreshToken/ADMIN/SSE policy was not changed.
+
+Notes:
+
+- Backend log had no fatal `ERROR`. Observed warnings were non-blocking: Flyway support warning for MySQL 8.4, Hibernate dialect deprecation, and Spring Page serialization warning.
+- QA data was created in the prodlike local database: users `qauser01` and `qauser02`, team `QA Phase9 Team`, related application, posts, comments, and notification.
