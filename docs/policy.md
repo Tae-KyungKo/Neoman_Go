@@ -348,6 +348,13 @@
 - AFTER_COMMIT listener는 커밋된 Notification을 다시 조회한 뒤 `NotificationResponse`로 변환해 SSE로 전송한다.
 - Notification 저장 실패는 기존 비즈니스 트랜잭션 롤백을 허용한다.
 
+### 9.3.1 알림 응답 시간 정책
+- 알림 REST/SSE 응답의 `createdAt`은 KST 기준 ISO-8601 offset 형식으로 제공한다.
+- 예시는 `2026-07-01T22:30:00+09:00` 형식이다.
+- DB 저장 방식과 `Notification` Entity의 `createdAt` 타입은 이번 Phase에서 변경하지 않는다.
+- REST 알림 목록과 SSE 실시간 알림은 같은 `NotificationResponse` 변환 로직을 사용한다.
+- 프론트엔드는 `createdAt`에 임의로 +9시간 보정을 추가하지 않는다.
+
 ### 9.4 읽음 처리
 - 알림은 읽음/안읽음 상태를 가진다.
 - 읽음 상태는 `readAt` 기반으로 설계한다.

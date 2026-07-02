@@ -8,6 +8,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -51,7 +53,8 @@ class NotificationSseEventListenerTest {
 			argThat(response -> response.id().equals(10L)
 				&& response.type() == NotificationType.TEAM_APPLICATION_APPROVED
 				&& response.targetType() == NotificationTargetType.TEAM_APPLICATION
-				&& response.targetId().equals(20L))
+				&& response.targetId().equals(20L)
+				&& response.createdAt().getOffset().equals(ZoneOffset.ofHours(9)))
 		);
 	}
 
@@ -107,6 +110,7 @@ class NotificationSseEventListenerTest {
 			20L
 		);
 		ReflectionTestUtils.setField(notification, "id", notificationId);
+		ReflectionTestUtils.setField(notification, "createdAt", LocalDateTime.of(2026, 7, 1, 22, 30));
 		return notification;
 	}
 }
