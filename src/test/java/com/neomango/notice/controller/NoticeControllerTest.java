@@ -122,7 +122,7 @@ class NoticeControllerTest {
 	@Test
 	void getNoticesReturnsActiveNoticesForUser() throws Exception {
 		User admin = saveAdmin();
-		User user = userRepository.save(User.create("user@test.com", "encoded-password", "user"));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "user@test.com", "encoded-password", "user"));
 		noticeRepository.save(Notice.create(admin, "notice", "content"));
 
 		mockMvc.perform(get("/api/notices")
@@ -134,7 +134,7 @@ class NoticeControllerTest {
 	@Test
 	void getNoticeReturnsActiveNoticeForUser() throws Exception {
 		User admin = saveAdmin();
-		User user = userRepository.save(User.create("user@test.com", "encoded-password", "user"));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "user@test.com", "encoded-password", "user"));
 		Notice notice = noticeRepository.save(Notice.create(admin, "notice", "content"));
 
 		mockMvc.perform(get("/api/notices/{noticeId}", notice.getId())

@@ -45,7 +45,7 @@ public class NotificationSseService {
 					.name(NOTIFICATION_EVENT_NAME)
 					.data(response));
 				successCount++;
-			} catch (IOException | RuntimeException e) {
+			} catch (IOException | IllegalStateException e) {
 				log.warn("Failed to send notification SSE. connectionId={}", entry.getKey(), e);
 				remove(receiverId, entry.getKey());
 			}
@@ -65,7 +65,7 @@ public class NotificationSseService {
 					emitterEntry.getValue().send(SseEmitter.event()
 						.comment(HEARTBEAT_COMMENT));
 					successCount++;
-				} catch (IOException | RuntimeException e) {
+				} catch (IOException | IllegalStateException e) {
 					log.warn("Failed to send heartbeat SSE. connectionId={}", emitterEntry.getKey(), e);
 					remove(userId, emitterEntry.getKey());
 				}
@@ -111,7 +111,7 @@ public class NotificationSseService {
 			emitter.send(SseEmitter.event()
 				.name(CONNECTED_EVENT_NAME)
 				.data(CONNECTED_EVENT_DATA));
-		} catch (IOException | RuntimeException e) {
+		} catch (IOException | IllegalStateException e) {
 			log.warn("Failed to send connected SSE. connectionId={}", connectionId, e);
 			remove(userId, connectionId);
 		}

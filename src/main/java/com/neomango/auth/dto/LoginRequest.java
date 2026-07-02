@@ -1,12 +1,14 @@
 package com.neomango.auth.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
+import com.neomango.user.policy.UserPolicy;
 
 public record LoginRequest(
 	@NotBlank
-	@Email
-	String email,
+	@Pattern(regexp = UserPolicy.LOGIN_ID_PATTERN)
+	String loginId,
 
 	@NotBlank
 	String password

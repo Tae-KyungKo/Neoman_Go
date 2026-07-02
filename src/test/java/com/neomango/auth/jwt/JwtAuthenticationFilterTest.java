@@ -1,5 +1,6 @@
 package com.neomango.auth.jwt;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,6 +17,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -38,6 +41,9 @@ class JwtAuthenticationFilterTest {
 	@Autowired
 	private JwtTokenProvider jwtTokenProvider;
 
+	@Autowired
+	private UserDetailsService userDetailsService;
+
 	@Test
 	void validAccessTokenAuthenticatesRequest() throws Exception {
 		String accessToken = jwtTokenProvider.createAccessToken(1L, UserRole.USER);
@@ -48,6 +54,12 @@ class JwtAuthenticationFilterTest {
 			.andExpect(jsonPath("$.data.userId", is(1)))
 			.andExpect(jsonPath("$.data.role", is("USER")))
 			.andExpect(jsonPath("$.data.authorities", contains("ROLE_USER")));
+	}
+
+	@Test
+	void userDetailsServiceBeanAlwaysFailsForJwtOnlyApi() {
+		assertThatThrownBy(() -> userDetailsService.loadUserByUsername("tester01"))
+			.isInstanceOf(UsernameNotFoundException.class);
 	}
 
 	@Test
@@ -94,14 +106,30 @@ class JwtAuthenticationFilterTest {
 				.contentType("application/json")
 				.content("""
 					{
+						"loginId": "tester01",
 						"email": "admin-injection@test.com",
-						"password": "password123",
+						"password": "Password123!",
+						"passwordConfirm": "Password123!",
 						"nickname": "normalUser",
 						"role": "ADMIN"
 					}
 					"""))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.role", is("USER")));
+	}
+
+	@Test
+	void signupRejectsLegacyRequestWithoutLoginIdAndPasswordConfirm() throws Exception {
+		mockMvc.perform(post("/api/auth/signup")
+				.contentType("application/json")
+				.content("""
+					{
+						"email": "old@example.com",
+						"password": "Password123!",
+						"nickname": "olduser"
+					}
+					"""))
+			.andExpect(status().isBadRequest());
 	}
 
 	@Test

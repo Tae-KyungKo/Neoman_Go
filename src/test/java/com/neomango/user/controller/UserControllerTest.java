@@ -59,7 +59,7 @@ class UserControllerTest {
 
 	@Test
 	void meReturnsCurrentUserInfoWhenAuthenticated() throws Exception {
-		User user = userRepository.save(User.create(EMAIL, ENCODED_PASSWORD, NICKNAME));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), EMAIL, ENCODED_PASSWORD, NICKNAME));
 		String accessToken = jwtTokenProvider.createAccessToken(user.getId(), UserRole.USER);
 
 		mockMvc.perform(get("/api/users/me")

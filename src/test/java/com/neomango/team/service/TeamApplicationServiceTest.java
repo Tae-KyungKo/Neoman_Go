@@ -601,7 +601,7 @@ class TeamApplicationServiceTest {
 	}
 
 	private User user(Long userId, String email, String nickname) {
-		User user = User.create(email, "encoded-password", nickname);
+		User user = User.create(com.neomango.support.TestLoginIds.next(), email, "encoded-password", nickname);
 		ReflectionTestUtils.setField(user, "id", userId);
 		return user;
 	}

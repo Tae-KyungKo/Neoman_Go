@@ -77,8 +77,8 @@ class TeamApplicationTest {
 	}
 
 	private TeamApplication application() {
-		User owner = User.create("owner@test.com", "encoded-password", "owner");
-		User applicant = User.create("applicant@test.com", "encoded-password", "applicant");
+		User owner = User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner");
+		User applicant = User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant");
 		Team team = Team.create("Team", null, "FUTSAL", owner);
 		return TeamApplication.create(team, applicant, "message");
 	}

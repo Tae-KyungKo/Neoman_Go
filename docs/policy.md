@@ -45,7 +45,11 @@
 ### 2.2 로그인/JWT
 - 인증 방식은 JWT Access Token + Refresh Token 구조를 사용한다.
 - Refresh Token은 Redis에 저장한다.
-- Redis 저장 시 TTL을 설정한다.
+- Refresh Token Redis key는 `refresh:{userId}` 형식을 사용한다.
+- email, loginId, nickname 같은 변경 가능한 사용자 식별자는 Refresh Token Redis key에 사용하지 않는다.
+- JWT subject는 userId 기준을 유지한다.
+- Redis 저장 시 TTL을 설정하고 Refresh Token 만료 시간 정책을 따른다.
+- 다중 기기 로그인은 Phase 9-8 범위에서 다루지 않는다.
 - Access Token은 API 인증에 사용한다.
 - Refresh Token은 Access Token 재발급에 사용한다.
 
@@ -269,11 +273,19 @@
 - 관리자는 운영 정책에 따라 댓글을 강제 삭제할 수 있다.
 - 댓글 삭제는 Soft Delete로 처리한다.
 
-### 7.3 탈퇴 회원 표시
+### 7.3 게시글/댓글 입력 제한
+- 게시글 제목은 1자 이상 100자 이하로 제한한다.
+- 게시글 본문은 1자 이상 5000자 이하로 제한한다.
+- 댓글 본문은 1자 이상 1000자 이하로 제한한다.
+- 공백만 있는 입력은 허용하지 않는다.
+- DB 컬럼 길이와 API validation 정책은 일치해야 한다.
+- 프론트 validation은 UX 보조이며, 최종 검증은 백엔드에서 수행한다.
+
+### 7.4 탈퇴 회원 표시
 - 탈퇴 회원이 작성한 게시글/댓글은 유지한다.
 - 삭제되지 않은 게시글/댓글에 한해 탈퇴 회원의 작성자 표시명은 게시판 화면에서 `탈퇴한 사용자`로 표시한다.
 
-### 7.4 게시글/댓글 예외 메시지
+### 7.5 게시글/댓글 예외 메시지
 - 작성자가 아닌 사용자가 수정/삭제하려는 경우: `작성자만 수정 또는 삭제할 수 있습니다`
 - 삭제된 게시글에 접근하는 경우: `존재하지 않는 게시글입니다`
 - 삭제된 댓글에 접근하는 경우: `존재하지 않는 댓글입니다`
@@ -344,6 +356,13 @@
 - AFTER_COMMIT listener는 커밋된 Notification을 다시 조회한 뒤 `NotificationResponse`로 변환해 SSE로 전송한다.
 - Notification 저장 실패는 기존 비즈니스 트랜잭션 롤백을 허용한다.
 
+### 9.3.1 알림 응답 시간 정책
+- 알림 REST/SSE 응답의 `createdAt`은 KST 기준 ISO-8601 offset 형식으로 제공한다.
+- 예시는 `2026-07-01T22:30:00+09:00` 형식이다.
+- DB 저장 방식과 `Notification` Entity의 `createdAt` 타입은 이번 Phase에서 변경하지 않는다.
+- REST 알림 목록과 SSE 실시간 알림은 같은 `NotificationResponse` 변환 로직을 사용한다.
+- 프론트엔드는 `createdAt`에 임의로 +9시간 보정을 추가하지 않는다.
+
 ### 9.4 읽음 처리
 - 알림은 읽음/안읽음 상태를 가진다.
 - 읽음 상태는 `readAt` 기반으로 설계한다.
@@ -362,6 +381,12 @@
 
 ### 9.6 SSE 실패 처리
 - 알림의 본체는 DB 저장 데이터이고, SSE는 실시간 전달 보조 수단이다.
+- SSE 연결 endpoint는 `text/event-stream` 응답이며 일반 REST JSON 응답과 예외 처리 흐름을 분리한다.
+- SSE 연결 전 인증/인가 실패, principal 누락, 잘못된 요청은 기존 Security/JWT 또는 명확한 HTTP status로 실패한다.
+- SSE 연결 이후 발생하는 전송 실패, client disconnect, timeout은 일반 REST JSON 에러 body로 변환하지 않는다.
+- `GlobalExceptionHandler`는 `Accept: text/event-stream` 요청을 SSE 요청으로 판단하고, 보조적으로 `/api/notifications/stream` URI를 SSE endpoint로 판단한다.
+- SSE 요청 예외 처리에서는 가능한 범위에서 HTTP status만 반환하고 `ErrorResponse` JSON body를 생성하지 않는다.
+- emitter cleanup은 `onCompletion`, `onTimeout`, `onError`, send failure에서 모두 수행한다.
 - SSE 전송 실패는 알림 유실로 보지 않는다.
 - SSE 전송 실패 후에도 DB 알림은 유지한다.
 - 사용자는 직접 조회 또는 새로고침 후 알림 목록 API로 안읽음 알림을 확인할 수 있다.
@@ -516,3 +541,78 @@
 - 팀 승인, 팀원 생성, 같은 카테고리 중복 소속 방지는 DB 제약과 트랜잭션 정책을 함께 고려한다.
 
 
+
+---
+
+## 13. Phase 9 회원가입/로그인 정책
+
+### 13.1 로그인 식별자
+
+- Phase 9부터 로그인 식별자는 email이 아니라 `loginId`다.
+- `loginId`의 DB 컬럼명은 `login_id`다.
+- Java 필드명과 API 필드명은 `loginId`다.
+- `loginId`는 4~12자다.
+- `loginId`는 영어 대소문자, 숫자만 허용한다.
+- `loginId`에는 한글을 허용하지 않는다.
+- `loginId`에는 특수문자와 공백을 허용하지 않는다.
+- `loginId` 정규식 기준은 `^[A-Za-z0-9]{4,12}$`다.
+- `loginId`는 대소문자를 구분한다.
+- DB collation도 case-sensitive로 맞춘다.
+
+### 13.2 이메일 정책
+
+- email은 로그인에 사용하지 않는다.
+- email 중복 제한은 유지한다.
+- 이메일 인증은 Phase 9 범위에 포함하지 않는다.
+
+### 13.3 비밀번호 정책
+
+- password는 8~16자다.
+- password에는 공백 문자를 허용하지 않는다.
+- password는 영문 대문자, 영문 소문자, 숫자, 일반 특수문자만 허용한다.
+- 한글 비밀번호는 허용하지 않는다.
+- 권장 정규식 예시:
+
+```text
+^[A-Za-z0-9!@#$%^&*()_\-+=\[\]{};:'",.<>/?\\|`~]{8,16}$
+```
+
+- password는 BCrypt로 단방향 해시 후 저장한다.
+
+### 13.4 닉네임 정책
+
+- nickname은 2~12자다.
+- nickname 중복 제한은 유지한다.
+- nickname은 대소문자를 구분한다.
+- 금칙어 검사는 대소문자를 무시한다.
+- 금지 닉네임은 `관리자`, `운영자`, `ADMIN`, `admin` 계열이다.
+- 관리자 계정의 실제 DB nickname은 `관리자`로 두지 않는다.
+- 공지사항 작성자 표시는 기존처럼 `관리자`로 유지할 수 있다.
+
+### 13.5 게시글/댓글 길이 정책
+
+- 게시글 제목은 1~100자다.
+- 게시글 본문은 1~5000자다.
+- 댓글 본문은 1~1000자다.
+
+### 13.6 중복 확인 API 정책
+
+- 아이디/닉네임 중복 확인 API는 UX 보조 기능이다.
+- 최종 중복 방어는 서버 검증과 DB unique constraint로 처리한다.
+- 단순 exists 체크 후 insert 방식만으로 중복을 방어하지 않는다.
+
+### 13.7 운영 환경 설정 파일 정책
+
+- 운영 DB/Redis 접속정보를 `application-prod.yml`에 직접 작성하지 않는다.
+- 운영 도메인, secret, password를 feature 브랜치에 커밋하지 않는다.
+- local profile에서 운영 DB/Redis를 바라보게 설정하지 않는다.
+- prod/prodlike에서는 `application-secret.yml`을 import하지 않는다.
+- 운영 `.env.prod`는 Git에 포함하지 않는다.
+- 환경변수 예시는 `.env.example` 또는 `docs/env.example.md`에만 작성한다.
+- 문서에는 환경변수 이름만 작성하고 실제 운영 값을 쓰지 않는다.
+- Phase 9 이후 ADMIN bootstrap에는 `ADMIN_BOOTSTRAP_LOGIN_ID`, `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD`, `ADMIN_BOOTSTRAP_NICKNAME`이 필요하다.
+- ADMIN bootstrap은 최초 운영 ADMIN 계정 생성용이다.
+- `ADMIN_BOOTSTRAP_ENABLED=true`는 최초 1회만 사용하고, 생성 후 `false`로 되돌린다.
+- `ADMIN_BOOTSTRAP_PASSWORD`는 최초 생성 후 운영 환경에서 제거하거나 무효화한다.
+- ADMIN loginId와 nickname은 Phase 9 사용자 정책을 따른다.
+- ADMIN DB nickname은 `관리자`를 쓰지 않는다. 공지 표시명 `관리자`와 계정 nickname은 별개다.

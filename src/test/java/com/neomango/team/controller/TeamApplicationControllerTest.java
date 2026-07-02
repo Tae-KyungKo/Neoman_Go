@@ -85,8 +85,8 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void cancelTeamApplicationReturnsCanceledApplicationWhenAuthenticatedApplicantRequests() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		TeamApplication application = teamApplicationRepository.save(
 			TeamApplication.create(team, applicant, "가입하고 싶습니다.")
@@ -116,8 +116,8 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void approveApplication_returnsApprovedStatusWhenRequesterIsOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		TeamApplication application = teamApplicationRepository.save(
 			TeamApplication.create(team, applicant, "가입하고 싶습니다.")
@@ -149,10 +149,10 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void approveApplication_createsJoinedNotificationForExistingActiveMemberOnly() throws Exception {
-		User owner = userRepository.save(User.create("owner-joined@test.com", "encoded-password", "owner"));
-		User member = userRepository.save(User.create("member-joined@test.com", "encoded-password", "member"));
-		User inactiveUser = userRepository.save(User.create("inactive-joined@test.com", "encoded-password", "inactive"));
-		User applicant = userRepository.save(User.create("applicant-joined@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-joined@test.com", "encoded-password", "owner"));
+		User member = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "member-joined@test.com", "encoded-password", "member"));
+		User inactiveUser = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "inactive-joined@test.com", "encoded-password", "inactive"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant-joined@test.com", "encoded-password", "applicant"));
 		Team team = Team.create("Futsal Team", null, "FUTSAL", owner);
 		team.addMember(TeamMember.createMember(team, member));
 		TeamMember inactiveMember = TeamMember.createMember(team, inactiveUser);
@@ -193,8 +193,8 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void rejectApplication_returnsRejectedStatusWhenRequesterIsOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		TeamApplication application = teamApplicationRepository.save(
 			TeamApplication.create(team, applicant, "가입하고 싶습니다.")
@@ -222,9 +222,9 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void approveApplication_failsWhenRequesterIsNotOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
-		User outsider = userRepository.save(User.create("outsider@test.com", "encoded-password", "outsider"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
+		User outsider = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "outsider@test.com", "encoded-password", "outsider"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		TeamApplication application = teamApplicationRepository.save(
 			TeamApplication.create(team, applicant, "가입하고 싶습니다.")
@@ -240,9 +240,9 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void rejectApplication_failsWhenRequesterIsNotOwner() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
-		User outsider = userRepository.save(User.create("outsider@test.com", "encoded-password", "outsider"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
+		User outsider = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "outsider@test.com", "encoded-password", "outsider"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		TeamApplication application = teamApplicationRepository.save(
 			TeamApplication.create(team, applicant, "가입하고 싶습니다.")
@@ -258,8 +258,8 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void approveApplication_failsWhenApplicationAlreadyProcessed() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		TeamApplication application = TeamApplication.create(team, applicant, "가입하고 싶습니다.");
 		application.approve();
@@ -275,7 +275,7 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void approveApplication_failsWhenApplicationNotFound() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
 		mockMvc.perform(post("/api/team-applications/{applicationId}/approve", 999L)
@@ -286,9 +286,9 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void approveApplication_failsWhenApplicantAlreadyBelongsToSameCategory() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User existingOwner = userRepository.save(User.create("existing-owner@test.com", "encoded-password", "existingOwner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User existingOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "existing-owner@test.com", "encoded-password", "existingOwner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		Team existingTeam = teamRepository.save(Team.create("Existing Futsal Team", null, "FUTSAL", existingOwner));
 		userCategoryMembershipRepository.saveAndFlush(
@@ -307,8 +307,8 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void approveApplication_failsWhenApplicantIsActiveTeamMember() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		teamMemberRepository.saveAndFlush(TeamMember.createMember(team, applicant));
 		TeamApplication application = teamApplicationRepository.save(
@@ -324,9 +324,9 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void approveApplication_cancelsOtherPendingApplicationsInSameCategory() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User otherOwner = userRepository.save(User.create("other-owner@test.com", "encoded-password", "otherOwner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User otherOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other-owner@test.com", "encoded-password", "otherOwner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		Team otherSameCategoryTeam = teamRepository.save(Team.create("Other Futsal Team", null, "FUTSAL", otherOwner));
 		TeamApplication application = teamApplicationRepository.save(
@@ -354,9 +354,9 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void approveApplication_doesNotCancelPendingApplicationsInDifferentCategory() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User otherOwner = userRepository.save(User.create("other-owner@test.com", "encoded-password", "otherOwner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User otherOwner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other-owner@test.com", "encoded-password", "otherOwner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team", null, "FUTSAL", owner));
 		Team differentCategoryTeam = teamRepository.save(Team.create("Baseball Team", null, "BASEBALL", otherOwner));
 		TeamApplication application = teamApplicationRepository.save(
@@ -394,7 +394,7 @@ class TeamApplicationControllerTest {
 
 	@Test
 	void rejectApplication_failsWhenApplicationNotFound() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
 		String accessToken = jwtTokenProvider.createAccessToken(owner.getId(), UserRole.USER);
 
 		mockMvc.perform(post("/api/team-applications/{applicationId}/reject", 999L)
@@ -404,8 +404,8 @@ class TeamApplicationControllerTest {
 	}
 
 	private void assertRejectFailsWhenApplicationAlreadyProcessed(TeamApplicationStatus status) throws Exception {
-		User owner = userRepository.save(User.create("owner-" + status + "@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant-" + status + "@test.com", "encoded-password", "applicant"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner-" + status + "@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant-" + status + "@test.com", "encoded-password", "applicant"));
 		Team team = teamRepository.save(Team.create("Futsal Team " + status, null, "FUTSAL", owner));
 		TeamApplication application = TeamApplication.create(team, applicant, "message");
 		switch (status) {

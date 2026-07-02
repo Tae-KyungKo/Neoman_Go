@@ -59,9 +59,9 @@ class MyTeamApplicationControllerTest {
 
 	@Test
 	void getMyTeamApplicationsReturnsOnlyCurrentUserApplicationsOrderedByCreatedAtDesc() throws Exception {
-		User owner = userRepository.save(User.create("owner@test.com", "encoded-password", "owner"));
-		User applicant = userRepository.save(User.create("applicant@test.com", "encoded-password", "applicant"));
-		User otherApplicant = userRepository.save(User.create("other@test.com", "encoded-password", "other"));
+		User owner = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner"));
+		User applicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant"));
+		User otherApplicant = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "other@test.com", "encoded-password", "other"));
 		Team pendingTeam = teamRepository.save(Team.create("Pending Team", null, "SOCCER", owner));
 		Team approvedTeam = teamRepository.save(Team.create("Approved Team", null, "BASEBALL", owner));
 		Team rejectedTeam = teamRepository.save(Team.create("Rejected Team", null, "BASKETBALL", owner));

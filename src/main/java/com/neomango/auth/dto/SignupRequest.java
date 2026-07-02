@@ -2,19 +2,29 @@ package com.neomango.auth.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import com.neomango.user.policy.UserPolicy;
+
 public record SignupRequest(
+	@NotBlank
+	@Pattern(regexp = UserPolicy.LOGIN_ID_PATTERN)
+	String loginId,
+
+	@NotBlank
+	@Pattern(regexp = UserPolicy.PASSWORD_PATTERN)
+	String password,
+
+	@NotBlank
+	String passwordConfirm,
+
 	@NotBlank
 	@Email
 	String email,
 
 	@NotBlank
-	@Size(min = 8, max = 72)
-	String password,
-
-	@NotBlank
-	@Size(max = 30)
+	@Size(min = UserPolicy.NICKNAME_MIN_LENGTH, max = UserPolicy.NICKNAME_MAX_LENGTH)
 	String nickname
 ) {
 }

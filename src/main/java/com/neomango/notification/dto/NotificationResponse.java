@@ -1,6 +1,8 @@
 package com.neomango.notification.dto;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 import com.neomango.notification.entity.Notification;
 import com.neomango.notification.entity.NotificationTargetType;
@@ -15,8 +17,10 @@ public record NotificationResponse(
 	Long targetId,
 	boolean read,
 	LocalDateTime readAt,
-	LocalDateTime createdAt
+	OffsetDateTime createdAt
 ) {
+
+	private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
 	public static NotificationResponse from(Notification notification) {
 		return new NotificationResponse(
@@ -28,7 +32,18 @@ public record NotificationResponse(
 			notification.getTargetId(),
 			notification.isRead(),
 			notification.getReadAt(),
-			notification.getCreatedAt()
+			toKst(notification.getCreatedAt())
 		);
+	}
+
+	private static OffsetDateTime toKst(LocalDateTime createdAt) {
+		if (createdAt == null) {
+			return null;
+		}
+
+		return createdAt
+			.atZone(ZoneId.systemDefault())
+			.withZoneSameInstant(KST)
+			.toOffsetDateTime();
 	}
 }

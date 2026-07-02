@@ -52,7 +52,7 @@ class NotificationServiceTest {
 
 	@Test
 	void createTeamApplicationCreatedNotificationSavesNotification() {
-		User receiver = User.create("owner@test.com", "encoded-password", "owner");
+		User receiver = User.create(com.neomango.support.TestLoginIds.next(), "owner@test.com", "encoded-password", "owner");
 		when(userRepository.getReferenceById(1L)).thenReturn(receiver);
 
 		notificationService.createTeamApplicationCreatedNotification(
@@ -76,7 +76,7 @@ class NotificationServiceTest {
 
 	@Test
 	void createTeamApplicationApprovedNotificationSavesNotification() {
-		User receiver = User.create("applicant@test.com", "encoded-password", "applicant");
+		User receiver = User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant");
 		when(userRepository.getReferenceById(2L)).thenReturn(receiver);
 
 		notificationService.createTeamApplicationApprovedNotification(2L, 1L, "Futsal Team", 10L);
@@ -94,7 +94,7 @@ class NotificationServiceTest {
 
 	@Test
 	void createTeamApplicationRejectedNotificationSavesNotification() {
-		User receiver = User.create("applicant@test.com", "encoded-password", "applicant");
+		User receiver = User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant");
 		when(userRepository.getReferenceById(2L)).thenReturn(receiver);
 
 		notificationService.createTeamApplicationRejectedNotification(2L, 1L, "Futsal Team", 10L);
@@ -112,7 +112,7 @@ class NotificationServiceTest {
 
 	@Test
 	void createTeamMemberJoinedNotificationSavesNotification() {
-		User receiver = User.create("member@test.com", "encoded-password", "member");
+		User receiver = User.create(com.neomango.support.TestLoginIds.next(), "member@test.com", "encoded-password", "member");
 		when(userRepository.getReferenceById(3L)).thenReturn(receiver);
 
 		notificationService.createTeamMemberJoinedNotification(3L, 2L, "Futsal Team", "joinedMember", 20L);
@@ -129,7 +129,7 @@ class NotificationServiceTest {
 
 	@Test
 	void createTeamMemberLeftNotificationSavesNotification() {
-		User receiver = User.create("member@test.com", "encoded-password", "member");
+		User receiver = User.create(com.neomango.support.TestLoginIds.next(), "member@test.com", "encoded-password", "member");
 		when(userRepository.getReferenceById(3L)).thenReturn(receiver);
 
 		notificationService.createTeamMemberLeftNotification(3L, 2L, "Futsal Team", "leftMember", 20L);
@@ -146,7 +146,7 @@ class NotificationServiceTest {
 
 	@Test
 	void createTeamMemberKickedNotificationSavesNotification() {
-		User receiver = User.create("member@test.com", "encoded-password", "member");
+		User receiver = User.create(com.neomango.support.TestLoginIds.next(), "member@test.com", "encoded-password", "member");
 		when(userRepository.getReferenceById(3L)).thenReturn(receiver);
 
 		notificationService.createTeamMemberKickedNotification(3L, 1L, "Futsal Team", 20L);
@@ -163,7 +163,7 @@ class NotificationServiceTest {
 
 	@Test
 	void createTeamOwnerDelegatedNotificationSavesNotification() {
-		User receiver = User.create("new-owner@test.com", "encoded-password", "newOwner");
+		User receiver = User.create(com.neomango.support.TestLoginIds.next(), "new-owner@test.com", "encoded-password", "newOwner");
 		when(userRepository.getReferenceById(3L)).thenReturn(receiver);
 
 		notificationService.createTeamOwnerDelegatedNotification(3L, 1L, "Futsal Team", 20L);
@@ -180,7 +180,7 @@ class NotificationServiceTest {
 
 	@Test
 	void createPostCommentCreatedNotificationSavesNotification() {
-		User receiver = User.create("post-author@test.com", "encoded-password", "postAuthor");
+		User receiver = User.create(com.neomango.support.TestLoginIds.next(), "post-author@test.com", "encoded-password", "postAuthor");
 		when(userRepository.getReferenceById(4L)).thenReturn(receiver);
 
 		notificationService.createPostCommentCreatedNotification(4L, 5L, "Post Title", "commentAuthor", 30L);
@@ -251,7 +251,7 @@ class NotificationServiceTest {
 
 	@Test
 	void createNotificationPublishesNotificationCreatedEvent() {
-		User receiver = User.create("applicant@test.com", "encoded-password", "applicant");
+		User receiver = User.create(com.neomango.support.TestLoginIds.next(), "applicant@test.com", "encoded-password", "applicant");
 		when(userRepository.getReferenceById(2L)).thenReturn(receiver);
 
 		notificationService.createTeamApplicationApprovedNotification(2L, 1L, "Futsal Team", 10L);

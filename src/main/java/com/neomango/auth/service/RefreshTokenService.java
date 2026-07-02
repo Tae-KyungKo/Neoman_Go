@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RefreshTokenService {
 
-	private static final String REFRESH_TOKEN_KEY_PREFIX = "RT:";
+	private static final String REFRESH_TOKEN_KEY_PREFIX = "refresh:";
 
 	private final RedisTemplate<String, String> redisTemplate;
 	private final JwtProperties jwtProperties;

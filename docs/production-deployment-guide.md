@@ -112,7 +112,7 @@ Required categories:
 After ADMIN creation:
 
 - Set `ADMIN_BOOTSTRAP_ENABLED=false`
-- Remove `ADMIN_PASSWORD`
+- Remove `ADMIN_BOOTSTRAP_PASSWORD`
 - Restart backend
 
 ## 7. Production Compose
@@ -195,10 +195,10 @@ Sensitive actuator endpoints such as `/actuator/env`, `/actuator/beans`, and `/a
 Use ADMIN bootstrap only once on the first production server.
 
 1. Set `ADMIN_BOOTSTRAP_ENABLED=true`.
-2. Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NICKNAME`.
+2. Set `ADMIN_BOOTSTRAP_LOGIN_ID`, `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD`, `ADMIN_BOOTSTRAP_NICKNAME`.
 3. Start backend and confirm ADMIN creation from logs without printing password.
 4. Set `ADMIN_BOOTSTRAP_ENABLED=false`.
-5. Remove `ADMIN_PASSWORD`.
+5. Remove `ADMIN_BOOTSTRAP_PASSWORD`.
 6. Restart backend.
 
 Never create ADMIN through public signup. Do not document or commit real ADMIN passwords.

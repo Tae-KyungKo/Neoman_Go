@@ -11,9 +11,10 @@ spring:
 app:
   admin-bootstrap:
     enabled: ${ADMIN_BOOTSTRAP_ENABLED:false}
-    email: ${ADMIN_EMAIL:}
-    password: ${ADMIN_PASSWORD:}
-    nickname: ${ADMIN_NICKNAME:}
+    login-id: ${ADMIN_BOOTSTRAP_LOGIN_ID:}
+    email: ${ADMIN_BOOTSTRAP_EMAIL:}
+    password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+    nickname: ${ADMIN_BOOTSTRAP_NICKNAME:}
 
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

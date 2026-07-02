@@ -12,13 +12,13 @@ public final class UserTestFixture {
 	}
 
 	public static User user(Long id, String email, String nickname) {
-		User user = User.create(email, ENCODED_PASSWORD, nickname);
+		User user = User.create(com.neomango.support.TestLoginIds.next(), email, ENCODED_PASSWORD, nickname);
 		ReflectionTestUtils.setField(user, "id", id);
 		return user;
 	}
 
 	public static User admin(Long id, String email, String nickname) {
-		User user = User.createAdmin(email, ENCODED_PASSWORD, nickname);
+		User user = User.createAdmin(com.neomango.support.TestLoginIds.next(), email, ENCODED_PASSWORD, nickname);
 		ReflectionTestUtils.setField(user, "id", id);
 		return user;
 	}

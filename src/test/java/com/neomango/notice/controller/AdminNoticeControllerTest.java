@@ -120,7 +120,7 @@ class AdminNoticeControllerTest {
 
 	@Test
 	void createNoticeRejectsUserRole() throws Exception {
-		User user = userRepository.save(User.create("user@test.com", "encoded-password", "user"));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "user@test.com", "encoded-password", "user"));
 		NoticeCreateRequest request = new NoticeCreateRequest("notice", "content");
 
 		mockMvc.perform(post("/api/admin/notices")
@@ -201,7 +201,7 @@ class AdminNoticeControllerTest {
 	@Test
 	void updateNoticeRejectsUserRole() throws Exception {
 		User admin = saveAdmin("admin@test.com");
-		User user = userRepository.save(User.create("user@test.com", "encoded-password", "user"));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "user@test.com", "encoded-password", "user"));
 		Notice notice = noticeRepository.save(Notice.create(admin, "notice", "content"));
 		NoticeUpdateRequest request = new NoticeUpdateRequest("updated", "updated content");
 
@@ -281,7 +281,7 @@ class AdminNoticeControllerTest {
 	@Test
 	void deleteNoticeRejectsUserRole() throws Exception {
 		User admin = saveAdmin("admin@test.com");
-		User user = userRepository.save(User.create("user@test.com", "encoded-password", "user"));
+		User user = userRepository.save(User.create(com.neomango.support.TestLoginIds.next(), "user@test.com", "encoded-password", "user"));
 		Notice notice = noticeRepository.save(Notice.create(admin, "notice", "content"));
 
 		mockMvc.perform(delete("/api/admin/notices/{noticeId}", notice.getId())
